@@ -7,6 +7,8 @@ const PORT = 8080;
 app.use(cors());
 app.use(express.json());
 
+const rateLimit = new Map();
+
 // AI Chat endpoint
 app.post('/api/ai/chat', (req, res) => {
   const { message, requestId, locale } = req.body;
@@ -14,6 +16,15 @@ app.post('/api/ai/chat', (req, res) => {
   // Validation
   if (!message || typeof message !== 'string') {
     return res.status(400).json({ status: 'error', error: 'Invalid request payload' });
+  }
+
+  const now = Date.now();
+  if (requestId) {
+    const last = rateLimit.get(requestId) || 0;
+    if (now - last < 500) {
+      return res.status(429).json({ status: 'error', error: 'Too many requests' });
+    }
+    rateLimit.set(requestId, now);
   }
 
   // Mock response based on last user message

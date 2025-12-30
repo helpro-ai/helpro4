@@ -14,10 +14,14 @@ import Register from './pages/Register';
 import ForgotPassword from './pages/ForgotPassword';
 import Dashboard from './pages/Dashboard';
 import Requests from './pages/Requests';
+import Marketplace from './pages/Marketplace';
+import RequestDetail from './pages/RequestDetail';
+import BookingDetail from './pages/BookingDetail';
 import Bookings from './pages/Bookings';
 import Messages from './pages/Messages';
 import Profile from './pages/Profile';
 import NotFound from './pages/NotFound';
+import { ProtectedRoute } from './components/ProtectedRoute';
 
 function App() {
   const [showLanguageGate, setShowLanguageGate] = useState(true);
@@ -53,11 +57,14 @@ function App() {
           <Route path="/forgot" element={<ForgotPassword />} />
           
           {/* App */}
-          <Route path="/app" element={<Dashboard />} />
-          <Route path="/requests" element={<Requests />} />
-          <Route path="/bookings" element={<Bookings />} />
-          <Route path="/messages" element={<Messages />} />
-          <Route path="/profile" element={<Profile />} />
+          <Route path="/app" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+          <Route path="/app/requests" element={<ProtectedRoute><Requests /></ProtectedRoute>} />
+          <Route path="/app/marketplace" element={<ProtectedRoute><Marketplace /></ProtectedRoute>} />
+          <Route path="/app/request/:id" element={<ProtectedRoute><RequestDetail /></ProtectedRoute>} />
+          <Route path="/app/booking/:id" element={<ProtectedRoute><BookingDetail /></ProtectedRoute>} />
+          <Route path="/app/bookings" element={<ProtectedRoute><Bookings /></ProtectedRoute>} />
+          <Route path="/app/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
+          <Route path="/app/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
           
           {/* 404 */}
           <Route path="/404" element={<NotFound />} />
