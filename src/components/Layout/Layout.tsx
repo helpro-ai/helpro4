@@ -2,7 +2,6 @@ import { NavLink, useLocation } from 'react-router-dom';
 import { useEffect, type ReactNode } from 'react';
 import './Layout.css';
 import { Button } from '../ui/Button';
-import { IconButton } from '../ui/IconButton';
 import { useTheme } from '../../hooks/useTheme';
 
 const navLinks = [
@@ -20,6 +19,8 @@ const navLinks = [
 function Layout({ children }: { children: ReactNode }) {
   const { theme, toggleTheme } = useTheme();
   const location = useLocation();
+
+  const themeLabel = theme === 'light' ? 'Light' : 'Dark';
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -40,10 +41,9 @@ function Layout({ children }: { children: ReactNode }) {
           ))}
         </nav>
         <div className="layout__actions">
-          <IconButton aria-label="Toggle theme" onClick={toggleTheme} title="Toggle light/dark">
-            {theme === 'light' ? '🌞' : '🌙'}
-          </IconButton>
-          <span className="layout__theme-label">{theme === 'light' ? 'Light' : 'Dark'}</span>
+          <Button variant="secondary" size="sm" aria-label="Toggle theme" onClick={toggleTheme}>
+            {theme === 'light' ? '🌞' : '🌙'} {themeLabel}
+          </Button>
           <Button variant="secondary" size="sm" onClick={() => window.location.hash = '#/login'}>
             Login
           </Button>

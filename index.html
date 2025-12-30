@@ -7,11 +7,18 @@
     <meta name="description" content="Helpro - Your marketplace for everyday help" />
     <script>
       (() => {
-        const stored = localStorage.getItem('helpro.theme') || 'dark';
-        const theme = stored === 'light' ? 'light' : 'dark';
-        const root = document.documentElement;
-        root.dataset.theme = theme;
-        root.classList.toggle('dark', theme === 'dark');
+        try {
+          const stored = localStorage.getItem('helpro.theme') || 'dark';
+          const theme = stored === 'light' ? 'light' : 'dark';
+          const root = document.documentElement;
+          root.dataset.theme = theme;
+          root.classList.toggle('dark', theme === 'dark');
+          root.style.colorScheme = theme;
+        } catch (error) {
+          document.documentElement.dataset.theme = 'dark';
+          document.documentElement.classList.add('dark');
+          document.documentElement.style.colorScheme = 'dark';
+        }
       })();
     </script>
     <title>Helpro - Marketplace for Everyday Help</title>

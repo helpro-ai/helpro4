@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useLayoutEffect, useState } from 'react';
 
 export type ThemeMode = 'light' | 'dark';
 const THEME_KEY = 'helpro.theme';
@@ -8,6 +8,7 @@ function applyTheme(theme: ThemeMode) {
   const root = document.documentElement;
   root.dataset.theme = theme;
   root.classList.toggle('dark', theme === 'dark');
+  root.style.colorScheme = theme;
 }
 
 export function useTheme() {
@@ -16,7 +17,7 @@ export function useTheme() {
     return stored === 'light' ? 'light' : 'dark';
   });
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     applyTheme(theme);
     if (typeof window !== 'undefined') {
       localStorage.setItem(THEME_KEY, theme);

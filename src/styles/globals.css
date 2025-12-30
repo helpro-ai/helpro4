@@ -2,10 +2,6 @@
 @import './theme.css';
 @import './animations.css';
 
-:root {
-  color-scheme: dark;
-}
-
 *,
 *::before,
 *::after {
@@ -20,7 +16,7 @@ html, body {
 body {
   min-height: 100vh;
   font-family: var(--font-sans);
-  background: radial-gradient(circle at 20% 20%, rgba(106, 167, 255, 0.16), transparent 28%), radial-gradient(circle at 80% 0%, rgba(77, 208, 225, 0.14), transparent 25%), radial-gradient(circle at 50% 50%, rgba(167, 139, 250, 0.12), transparent 35%), var(--bg0);
+  background: radial-gradient(circle at 20% 20%, rgba(106, 167, 255, 0.16), transparent 28%), radial-gradient(circle at 80% 0%, rgba(77, 208, 225, 0.14), transparent 25%), radial-gradient(circle at 50% 50%, rgba(167, 139, 250, 0.12), transparent 35%), var(--bg);
   color: var(--text);
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
