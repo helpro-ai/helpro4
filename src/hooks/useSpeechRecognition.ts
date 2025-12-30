@@ -7,21 +7,26 @@ export function useSpeechRecognition() {
   const [transcript, setTranscript] = useState('');
   const [partial, setPartial] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const recognitionRef = useRef<any>(null);
 
   useEffect(() => {
-    if (!isSpeechRecognitionSupported()) {
+    if (typeof window === 'undefined' || !isSpeechRecognitionSupported()) {
       setError('Speech recognition not supported in this browser');
       return;
     }
 
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    const recognition: SpeechRecognition = new SpeechRecognition();
+    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SR) {
+      setError('Speech recognition not supported in this browser');
+      return;
+    }
+
+    const recognition: any = new SR();
     recognition.continuous = true;
     recognition.interimResults = true;
     recognition.lang = getSpeechLang(getLocale());
 
-    recognition.onresult = (event: SpeechRecognitionEvent) => {
+    recognition.onresult = (event: any) => {
       let interimTranscript = '';
       let finalTranscript = '';
 
@@ -42,7 +47,7 @@ export function useSpeechRecognition() {
       }
     };
 
-    recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
+    recognition.onerror = (event: any) => {
       console.error('[SpeechRecognition] Error:', event.error);
       setError(event.error);
       setIsListening(false);

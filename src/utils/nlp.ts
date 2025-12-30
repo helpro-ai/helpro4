@@ -21,7 +21,7 @@ export function parseUserIntent(text: string): UserIntent {
   for (const entry of categoryKeywords) {
     if (entry.words.some(word => normalized.includes(word))) {
       category = entry.key;
-      rawEntities.push(entry.key);
+      if (entry.key) rawEntities.push(entry.key);
       break;
     }
   }
@@ -29,7 +29,7 @@ export function parseUserIntent(text: string): UserIntent {
   for (const entry of timeKeywords) {
     if (entry.words.some(word => normalized.includes(word))) {
       timeHint = entry.key;
-      rawEntities.push(entry.key);
+      if (entry.key) rawEntities.push(entry.key);
       break;
     }
   }

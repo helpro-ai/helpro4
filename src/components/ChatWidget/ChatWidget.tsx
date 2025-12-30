@@ -103,6 +103,7 @@ export function ChatWidget() {
               {speakReplies ? '🔊' : '🔈'}
             </IconButton>
           )}
+          {synthesisSupported && isSpeaking && <span className="chat__speak-status">Speaking…</span>}
         </div>
       </div>
 
