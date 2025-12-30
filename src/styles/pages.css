@@ -3,6 +3,10 @@
   gap: var(--space-6);
 }
 
+.page--center {
+  justify-items: center;
+}
+
 .hero {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
@@ -32,6 +36,10 @@
 .hero__panel {
   min-height: 380px;
   background: linear-gradient(135deg, var(--glass), var(--glass2));
+}
+
+.chat-shell {
+  width: min(1100px, 96vw);
 }
 
 .lead {

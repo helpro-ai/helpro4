@@ -1,8 +1,9 @@
 .chat {
   display: grid;
-  grid-template-rows: auto 1fr auto auto;
+  grid-template-rows: auto 1fr auto;
   gap: var(--space-3);
   height: 100%;
+  max-width: 100%;
 }
 
 .chat__header {
@@ -23,12 +24,29 @@
   gap: 0.35rem;
 }
 
-.chat__messages {
+.chat__body {
+  display: grid;
+  grid-template-columns: 1fr minmax(220px, 280px);
+  gap: var(--space-3);
+  min-height: 420px;
+}
+
+.chat__stream {
   overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
   padding: 0.25rem;
+}
+
+.chat__sidebar {
+  display: none;
+}
+
+@media (min-width: 900px) {
+  .chat__sidebar {
+    display: block;
+  }
 }
 
 .chat__message {
@@ -65,6 +83,11 @@
 .chat__loading { color: var(--muted); }
 .chat__error { color: #f28b82; }
 
+.chat__composer {
+  display: grid;
+  gap: var(--space-2);
+}
+
 .chat__input {
   display: flex;
   gap: 0.5rem;
@@ -89,4 +112,64 @@
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+}
+
+.chat__footer-note {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: var(--muted);
+  font-size: var(--text-sm);
+}
+
+.chat__speak-toggle {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.draft {
+  background: var(--glass);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: var(--space-3);
+  backdrop-filter: blur(var(--blur));
+  box-shadow: var(--shadow);
+}
+
+.draft__header {
+  margin-bottom: var(--space-3);
+}
+
+.draft__list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.draft__list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--glass2);
+}
+
+.draft__open {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  padding: 6px 10px;
+  cursor: pointer;
+  transition: transform var(--transition-fast), border-color var(--transition-fast);
+}
+
+.draft__open:hover {
+  transform: translateY(-1px);
+  border-color: var(--border-strong);
 }

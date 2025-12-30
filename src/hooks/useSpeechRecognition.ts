@@ -5,22 +5,23 @@ import { getSpeechLang, getLocale } from '../i18n';
 export function useSpeechRecognition() {
   const [isListening, setIsListening] = useState(false);
   const [transcript, setTranscript] = useState('');
+  const [partial, setPartial] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const recognitionRef = useRef<any>(null);
+  const recognitionRef = useRef<SpeechRecognition | null>(null);
 
   useEffect(() => {
     if (!isSpeechRecognitionSupported()) {
-      setError('Speech recognition not supported');
+      setError('Speech recognition not supported in this browser');
       return;
     }
 
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    recognitionRef.current = new SpeechRecognition();
-    recognitionRef.current.continuous = true;
-    recognitionRef.current.interimResults = true;
-    recognitionRef.current.lang = getSpeechLang(getLocale());
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    const recognition: SpeechRecognition = new SpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = getSpeechLang(getLocale());
 
-    recognitionRef.current.onresult = (event: any) => {
+    recognition.onresult = (event: SpeechRecognitionEvent) => {
       let interimTranscript = '';
       let finalTranscript = '';
 
@@ -33,31 +34,39 @@ export function useSpeechRecognition() {
         }
       }
 
-      setTranscript(finalTranscript || interimTranscript);
+      if (finalTranscript) {
+        setTranscript(prev => `${prev} ${finalTranscript}`.trim());
+        setPartial('');
+      } else {
+        setPartial(interimTranscript);
+      }
     };
 
-    recognitionRef.current.onerror = (event: any) => {
+    recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
       console.error('[SpeechRecognition] Error:', event.error);
       setError(event.error);
       setIsListening(false);
     };
 
-    recognitionRef.current.onend = () => {
+    recognition.onend = () => {
       setIsListening(false);
     };
 
+    recognitionRef.current = recognition;
+
     return () => {
-      if (recognitionRef.current) {
-        recognitionRef.current.stop();
-      }
+      recognition.stop();
+      recognitionRef.current = null;
     };
   }, []);
 
-  const start = useCallback(() => {
+  const start = useCallback((lang?: string) => {
     if (!recognitionRef.current) return;
     setTranscript('');
+    setPartial('');
     setError(null);
     try {
+      if (lang) recognitionRef.current.lang = lang;
       recognitionRef.current.start();
       setIsListening(true);
     } catch (err: any) {
@@ -79,6 +88,7 @@ export function useSpeechRecognition() {
   return {
     isListening,
     transcript,
+    partial,
     error,
     start,
     stop,

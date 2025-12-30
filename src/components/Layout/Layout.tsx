@@ -5,15 +5,11 @@ import { Button } from '../ui/Button';
 import { IconButton } from '../ui/IconButton';
 
 const navLinks = [
-  { to: '/', label: 'Home' },
+  { to: '/', label: 'Chat' },
   { to: '/pricing', label: 'Pricing' },
   { to: '/faq', label: 'FAQ' },
-  { to: '/contact', label: 'Contact' },
-  { to: '/app', label: 'Dashboard' },
-  { to: '/requests', label: 'Requests' },
-  { to: '/bookings', label: 'Bookings' },
-  { to: '/messages', label: 'Messages' },
-  { to: '/profile', label: 'Profile' },
+  { to: '/login', label: 'Login' },
+  { to: '/register', label: 'Register' },
 ];
 
 function Layout({ children }: { children: ReactNode }) {
