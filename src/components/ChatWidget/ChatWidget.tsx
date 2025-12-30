@@ -111,7 +111,7 @@ export function ChatWidget() {
         <div className="chat__stream" ref={listRef}>
           {messages.length === 0 && (
             <div className="chat__empty">
-              <p>Ask for a home, office, or hotel session. I’ll draft the plan.</p>
+              <p>Ask for a home, office, or hotel session. I&apos;ll draft the plan.</p>
               <p className="muted">Voice stays on-device via your browser.</p>
             </div>
           )}

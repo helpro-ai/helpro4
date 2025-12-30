@@ -27,6 +27,7 @@ export interface TaskRequest {
   priceMode: 'fixed' | 'bid';
   budget?: number;
   createdAt: string;
+  status?: 'draft' | 'published' | 'open';
 }
 
 export interface Offer {

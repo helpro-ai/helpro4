@@ -25,11 +25,33 @@ export default function RequestDetail() {
 
   const submitOffer = () => {
     if (!id || !amount) return;
-    const offer: Offer = {\n      id: generateRequestId(),\n      requestId: id,\n      providerId: 'local-provider',\n      amount: Number(amount),\n      message,\n      availability,\n      createdAt: new Date().toISOString(),\n    } as any;\n    saveOffer(offer);\n    setOffers(listOffers(id));\n    setAmount('');\n    setMessage('');\n  };
+    const offer: Offer = {
+      id: generateRequestId(),
+      requestId: id,
+      providerId: 'local-provider',
+      amount: Number(amount),
+      message,
+      availability,
+      createdAt: new Date().toISOString(),
+    } as Offer;
+    saveOffer(offer);
+    setOffers(listOffers(id));
+    setAmount('');
+    setMessage('');
+    setAvailability('');
+  };
 
   const acceptOffer = (offerId: string, providerId: string) => {
     if (!id || !request) return;
-    const booking = createBooking({\n      requestId: id,\n      customerId: request.customerId,\n      providerId,\n      status: 'accepted',\n      acceptedOfferId: offerId,\n    });\n    navigate(`/app/booking/${booking.id}`);\n  };
+    const booking = createBooking({
+      requestId: id,
+      customerId: request.customerId,
+      providerId,
+      status: 'accepted',
+      acceptedOfferId: offerId,
+    });
+    navigate(`/app/booking/${booking.id}`);
+  };
 
   return (
     <div className="page">
