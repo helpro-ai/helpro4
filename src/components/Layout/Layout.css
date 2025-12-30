@@ -9,9 +9,9 @@
   position: sticky;
   top: 0;
   z-index: var(--z-nav);
-  background: rgba(7, 10, 16, 0.7);
+  background: var(--glass-bg);
   backdrop-filter: blur(var(--blur));
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--glass-border);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -32,9 +32,9 @@
   display: grid;
   place-items: center;
   background: linear-gradient(135deg, rgba(106, 167, 255, 0.35), rgba(77, 208, 225, 0.28));
-  color: #fff;
+  color: var(--text-contrast);
   border-radius: var(--radius-sm);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+  box-shadow: var(--shadow);
 }
 
 .layout__nav {
@@ -82,7 +82,7 @@
   padding: 18px;
   color: var(--muted);
   border-top: 1px solid var(--border);
-  background: rgba(7, 10, 16, 0.7);
+  background: var(--glass-bg);
   backdrop-filter: blur(var(--blur));
 }
 

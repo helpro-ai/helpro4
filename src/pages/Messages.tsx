@@ -20,7 +20,7 @@ export default function Messages() {
                 <p style={{ marginTop: '0.25rem' }}>{thread.last}</p>
               </div>
               {thread.unread > 0 && (
-                <span style={{ background: 'var(--accent)', color: '#fff', borderRadius: '50%', padding: '0.35rem 0.55rem', fontWeight: 700 }}>
+                <span style={{ background: 'var(--accent)', color: 'var(--text-contrast)', borderRadius: '50%', padding: '0.35rem 0.55rem', fontWeight: 700 }}>
                   {thread.unread}
                 </span>
               )}
