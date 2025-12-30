@@ -1,8 +1,9 @@
 import { NavLink, useLocation } from 'react-router-dom';
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, type ReactNode } from 'react';
 import './Layout.css';
 import { Button } from '../ui/Button';
 import { IconButton } from '../ui/IconButton';
+import { useTheme } from '../../hooks/useTheme';
 
 const navLinks = [
   { to: '/', label: 'Chat' },
@@ -17,15 +18,8 @@ const navLinks = [
 ];
 
 function Layout({ children }: { children: ReactNode }) {
-  const [theme, setTheme] = useState<'light' | 'dark'>(() => (
-    (localStorage.getItem('helpro_theme') as 'light' | 'dark') || 'light'
-  ));
+  const { theme, toggleTheme } = useTheme();
   const location = useLocation();
-
-  useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme);
-    localStorage.setItem('helpro_theme', theme);
-  }, [theme]);
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -46,9 +40,10 @@ function Layout({ children }: { children: ReactNode }) {
           ))}
         </nav>
         <div className="layout__actions">
-          <IconButton aria-label="Toggle theme" onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}>
+          <IconButton aria-label="Toggle theme" onClick={toggleTheme} title="Toggle light/dark">
             {theme === 'light' ? '🌞' : '🌙'}
           </IconButton>
+          <span className="layout__theme-label">{theme === 'light' ? 'Light' : 'Dark'}</span>
           <Button variant="secondary" size="sm" onClick={() => window.location.hash = '#/login'}>
             Login
           </Button>

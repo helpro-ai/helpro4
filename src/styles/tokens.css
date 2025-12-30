@@ -1,14 +1,4 @@
 :root {
-  --bg0: #05060a;
-  --bg1: #070a10;
-  --bg2: #0b0f18;
-  --text: rgba(255, 255, 255, 0.92);
-  --muted: rgba(255, 255, 255, 0.62);
-  --border: rgba(255, 255, 255, 0.10);
-  --border-strong: rgba(255, 255, 255, 0.18);
-  --glass: rgba(255, 255, 255, 0.06);
-  --glass2: rgba(255, 255, 255, 0.09);
-  --shadow: 0 20px 60px rgba(0, 0, 0, 0.55);
   --radius: 16px;
   --radius-sm: 12px;
   --radius-full: 999px;

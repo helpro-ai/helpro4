@@ -1,4 +1,33 @@
-:root {
+:root,
+html[data-theme='light'] {
+  --bg0: #f7f8fa;
+  --bg1: #ffffff;
+  --bg2: #e8edf5;
+  --text: #0f172a;
+  --muted: #475569;
+  --border: rgba(0, 0, 0, 0.08);
+  --border-strong: rgba(0, 0, 0, 0.14);
+  --glass: rgba(255, 255, 255, 0.7);
+  --glass2: rgba(255, 255, 255, 0.85);
+  --shadow: 0 16px 40px rgba(15, 23, 42, 0.18);
+  --surface: rgba(255, 255, 255, 0.9);
+  --surface-strong: rgba(255, 255, 255, 0.95);
+  --surface-stronger: rgba(255, 255, 255, 1);
+  --card-shadow: var(--shadow);
+  --accent-gradient: radial-gradient(circle at 20% 20%, rgba(106, 167, 255, 0.18) 0, transparent 35%), radial-gradient(circle at 80% 0%, rgba(167, 139, 250, 0.16) 0, transparent 30%), linear-gradient(135deg, rgba(77, 208, 225, 0.12), rgba(106, 167, 255, 0.12));
+}
+
+html[data-theme='dark'] {
+  --bg0: #05060a;
+  --bg1: #070a10;
+  --bg2: #0b0f18;
+  --text: rgba(255, 255, 255, 0.92);
+  --muted: rgba(255, 255, 255, 0.62);
+  --border: rgba(255, 255, 255, 0.10);
+  --border-strong: rgba(255, 255, 255, 0.18);
+  --glass: rgba(255, 255, 255, 0.06);
+  --glass2: rgba(255, 255, 255, 0.09);
+  --shadow: 0 20px 60px rgba(0, 0, 0, 0.55);
   --surface: rgba(255, 255, 255, 0.04);
   --surface-strong: rgba(255, 255, 255, 0.07);
   --surface-stronger: rgba(255, 255, 255, 0.12);
