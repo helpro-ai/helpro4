@@ -6,6 +6,10 @@ import { IconButton } from '../ui/IconButton';
 
 const navLinks = [
   { to: '/', label: 'Chat' },
+  { to: '/services', label: 'Services' },
+  { to: '/app/marketplace', label: 'Marketplace' },
+  { to: '/app/requests/new', label: 'Post Request' },
+  { to: '/app', label: 'Dashboard' },
   { to: '/pricing', label: 'Pricing' },
   { to: '/faq', label: 'FAQ' },
   { to: '/login', label: 'Login' },
