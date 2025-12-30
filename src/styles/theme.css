@@ -1,0 +1,50 @@
+/* Light Theme */
+:root[data-theme="light"],
+:root {
+  --bg-primary: var(--color-white);
+  --bg-secondary: var(--gray-50);
+  --bg-tertiary: var(--gray-100);
+  --bg-elevated: var(--color-white);
+  
+  --text-primary: var(--gray-900);
+  --text-secondary: var(--gray-600);
+  --text-tertiary: var(--gray-500);
+  --text-inverse: var(--color-white);
+  
+  --border-primary: var(--gray-200);
+  --border-secondary: var(--gray-300);
+  
+  --accent: var(--accent-mid);
+  --accent-gradient: linear-gradient(135deg, var(--accent-start), var(--accent-mid), var(--accent-end));
+  --accent-text: var(--color-white);
+  
+  --glass-bg: rgba(255, 255, 255, 0.8);
+  --glass-border: rgba(255, 255, 255, 0.2);
+  
+  --shadow-color: rgba(0, 0, 0, 0.1);
+}
+
+/* Dark Theme */
+:root[data-theme="dark"] {
+  --bg-primary: #0a0a0a;
+  --bg-secondary: var(--gray-900);
+  --bg-tertiary: var(--gray-800);
+  --bg-elevated: var(--gray-900);
+  
+  --text-primary: var(--gray-50);
+  --text-secondary: var(--gray-400);
+  --text-tertiary: var(--gray-500);
+  --text-inverse: var(--gray-900);
+  
+  --border-primary: var(--gray-800);
+  --border-secondary: var(--gray-700);
+  
+  --accent: var(--accent-mid);
+  --accent-gradient: linear-gradient(135deg, var(--accent-start), var(--accent-mid), var(--accent-end));
+  --accent-text: var(--color-white);
+  
+  --glass-bg: rgba(23, 23, 23, 0.6);
+  --glass-border: rgba(255, 255, 255, 0.1);
+  
+  --shadow-color: rgba(0, 0, 0, 0.5);
+}
