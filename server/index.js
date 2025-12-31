@@ -9,6 +9,19 @@ app.use(express.json());
 
 const rateLimit = new Map();
 
+// Health check endpoint (matches api/health.ts)
+app.get('/api/health', (req, res) => {
+  res.json({
+    ok: true,
+    message: 'healthy',
+    timestamp: new Date().toISOString(),
+  });
+});
+
+app.options('/api/health', (req, res) => {
+  res.status(204).end();
+});
+
 // AI Chat endpoint
 app.post('/api/ai/chat', (req, res) => {
   const { message, requestId, locale } = req.body;
