@@ -77,6 +77,13 @@ const QUESTIONS = {
     es: '¿Cuál es tu disponibilidad? (ej. días laborables, fines de semana, tardes)',
     fa: 'در چه زمان‌هایی در دسترس هستید؟ (مثلاً روزهای هفته، آخر هفته، عصرها)',
   },
+  GREETING: {
+    en: 'Hello! I can help you book services or sign up as a helper. What would you like to do?',
+    sv: 'Hej! Jag kan hjälpa dig boka tjänster eller registrera dig som hjälpare. Vad vill du göra?',
+    de: 'Hallo! Ich kann Ihnen helfen, Dienste zu buchen oder sich als Helfer anzumelden. Was möchten Sie tun?',
+    es: '¡Hola! Puedo ayudarte a reservar servicios o registrarte como ayudante. ¿Qué te gustaría hacer?',
+    fa: 'سلام! می‌توانم به شما کمک کنم خدمات رزرو کنید یا به عنوان کمک‌کننده ثبت‌نام کنید. چه کاری می‌خواهید انجام دهید؟',
+  },
 };
 
 const CONFIRMATIONS = {
@@ -104,9 +111,20 @@ const CONFIRMATIONS = {
 };
 
 /**
+ * Check if message is a quick action token
+ * @param {string} message
+ * @returns {boolean}
+ */
+function isQuickActionToken(message) {
+  const normalized = message.toLowerCase().trim();
+  const quickActions = ['home', 'office', 'hotel', 'today', 'tomorrow', 'weekend'];
+  return quickActions.includes(normalized);
+}
+
+/**
  * Generate context-aware reply based on conversation state
  * @param {string} message
- * @param {Locale} locale
+ * @param {Locale} locale - Request locale from client
  * @param {ConversationState | null} previousState
  * @returns {AssistantResponse}
  */
@@ -114,10 +132,17 @@ export function generateAssistantResponse(message, locale, previousState) {
   // Step 1: Analyze message with NLP
   const nlpResult = analyzeMessage(message, locale);
 
-  // Step 2: Initialize or update conversation state
+  // Step 2: Determine reply locale (source of truth)
+  // - Quick actions: use request locale
+  // - Otherwise: prefer NLP-detected language, fallback to request locale
+  const replyLocale = isQuickActionToken(message)
+    ? (locale || 'en')
+    : (nlpResult.detectedLanguage || locale || 'en');
+
+  // Step 3: Initialize or update conversation state
   const currentState = previousState || initConversationState(nlpResult.intent);
 
-  // Step 3: Extract new information from this message
+  // Step 4: Extract new information from this message
   const newInfo = {
     intent: nlpResult.intent,
     location: nlpResult.entities.location,
@@ -130,9 +155,9 @@ export function generateAssistantResponse(message, locale, previousState) {
     budget: nlpResult.entities.budget,
   };
 
-  // Step 4: Resolve service if needed
+  // Step 5: Resolve service if needed
   if ((nlpResult.intent === 'BOOK_SERVICE' || nlpResult.intent === 'POST_TASK') && !currentState.serviceId) {
-    const serviceMatch = resolveService(message, locale, nlpResult.category);
+    const serviceMatch = resolveService(message, replyLocale, nlpResult.category);
 
     if (serviceMatch.matchType === 'KNOWN') {
       newInfo.serviceId = serviceMatch.serviceId;
@@ -141,11 +166,11 @@ export function generateAssistantResponse(message, locale, previousState) {
     }
   }
 
-  // Step 5: Advance conversation state
+  // Step 6: Advance conversation state
   const nextState = advanceConversationState(currentState, newInfo);
 
-  // Step 6: Generate reply based on next step
-  const reply = generateReplyForStep(nextState, locale, nlpResult);
+  // Step 7: Generate reply based on next step using reply locale
+  const reply = generateReplyForStep(nextState, replyLocale, nlpResult);
 
   return {
     reply,
@@ -162,6 +187,25 @@ export function generateAssistantResponse(message, locale, previousState) {
  */
 function generateReplyForStep(state, locale, nlpResult) {
   const step = state.step;
+
+  // DETECT_INTENT step (greetings and unknown intent)
+  if (step === 'DETECT_INTENT') {
+    // Check if message is a greeting (short text with UNKNOWN intent)
+    const isGreeting = nlpResult.intent === 'UNKNOWN';
+
+    if (isGreeting) {
+      return QUESTIONS.GREETING[locale];
+    }
+
+    // Non-greeting UNKNOWN: ask what they want to do
+    return {
+      en: 'Would you like to book a service or sign up as a helper?',
+      sv: 'Vill du boka en tjänst eller registrera dig som hjälpare?',
+      de: 'Möchten Sie einen Service buchen oder sich als Helfer registrieren?',
+      es: '¿Te gustaría reservar un servicio o registrarte como ayudante?',
+      fa: 'می‌خواهید یک خدمت رزرو کنید یا به عنوان کمک‌کننده ثبت‌نام کنید؟',
+    }[locale];
+  }
 
   // RESOLVE_SERVICE step
   if (step === 'RESOLVE_SERVICE') {
@@ -248,6 +292,17 @@ function generateReplyForStep(state, locale, nlpResult) {
     ].filter(Boolean).join('\n');
 
     return CONFIRMATIONS.SUMMARY[locale](details);
+  }
+
+  // GENERAL_QA: Ask what topic they want to know about
+  if (state.intent === 'GENERAL_QA') {
+    return {
+      en: 'What would you like to know about? (e.g., pricing, payment methods, safety, how it works)',
+      sv: 'Vad vill du veta mer om? (t.ex. priser, betalningsmetoder, säkerhet, hur det fungerar)',
+      de: 'Was möchten Sie wissen? (z.B. Preise, Zahlungsmethoden, Sicherheit, wie es funktioniert)',
+      es: '¿Qué te gustaría saber? (ej. precios, métodos de pago, seguridad, cómo funciona)',
+      fa: 'چه چیزی می‌خواهید بدانید؟ (مثلاً قیمت‌ها، روش‌های پرداخت، امنیت، چگونه کار می‌کند)',
+    }[locale];
   }
 
   // Default fallback

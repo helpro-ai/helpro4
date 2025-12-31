@@ -33,19 +33,30 @@ const VALID_CATEGORIES = [
   'painting',
 ];
 
-// Language detection
+// Language detection with greeting support
 /**
  * @param {string} text
  * @returns {Locale}
  */
 function detectLanguage(text) {
-  const normalized = text.toLowerCase();
+  const normalized = text.toLowerCase().trim();
 
+  // Persian/Arabic script detection (highest priority)
   if (/[\u0600-\u06FF]/.test(text)) return 'fa';
-  if (/\b(jag|är|behöver|vill|kan|städning|hjälp|flyttning)\b/.test(normalized)) return 'sv';
-  if (/\b(ich|bin|brauche|will|kann|reinigung|hilfe|umzug)\b/.test(normalized)) return 'de';
-  if (/\b(necesito|soy|quiero|puedo|limpieza|ayuda|mudanza)\b/.test(normalized)) return 'es';
 
+  // Swedish greetings + keywords
+  if (/\b(hej|tjena|hallå|god\s+morgon|god\s+kväll|godmorgon|godkväll)\b/.test(normalized)) return 'sv';
+  if (/\b(jag|är|behöver|vill|kan|städning|hjälp|flyttning|imorgon|idag)\b/.test(normalized)) return 'sv';
+
+  // German greetings + keywords
+  if (/\b(hallo|guten\s+tag|guten\s+morgen|guten\s+abend)\b/.test(normalized)) return 'de';
+  if (/\b(ich|bin|brauche|will|kann|reinigung|hilfe|umzug|heute|morgen)\b/.test(normalized)) return 'de';
+
+  // Spanish greetings + keywords
+  if (/\b(hola|buenos\s+días|buenas\s+tardes|buenas\s+noches)\b/.test(normalized)) return 'es';
+  if (/\b(necesito|soy|quiero|puedo|limpieza|ayuda|mudanza|hoy|mañana)\b/.test(normalized)) return 'es';
+
+  // English is default
   return 'en';
 }
 
