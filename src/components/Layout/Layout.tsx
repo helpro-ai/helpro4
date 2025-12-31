@@ -3,21 +3,24 @@ import { useEffect, type ReactNode } from 'react';
 import './Layout.css';
 import { Button } from '../ui/Button';
 import { useTheme } from '../../hooks/useTheme';
+import { LanguageSelector } from '../LanguageSelector/LanguageSelector';
+import { useTranslation } from '../../i18n';
 
 const navLinks = [
-  { to: '/', label: 'Chat' },
-  { to: '/services', label: 'Services' },
-  { to: '/app/marketplace', label: 'Marketplace' },
-  { to: '/app/requests/new', label: 'Post Request' },
-  { to: '/app', label: 'Dashboard' },
-  { to: '/pricing', label: 'Pricing' },
-  { to: '/faq', label: 'FAQ' },
-  { to: '/login', label: 'Login' },
-  { to: '/register', label: 'Register' },
+  { to: '/', label: 'Chat', key: 'nav.home' },
+  { to: '/services', label: 'Services', key: 'nav.services' },
+  { to: '/app/marketplace', label: 'Marketplace', key: 'nav.marketplace' },
+  { to: '/app/requests/new', label: 'Post Request', key: 'nav.postRequest' },
+  { to: '/app', label: 'Dashboard', key: 'nav.dashboard' },
+  { to: '/pricing', label: 'Pricing', key: 'nav.pricing' },
+  { to: '/faq', label: 'FAQ', key: 'nav.faq' },
+  { to: '/login', label: 'Login', key: 'nav.login' },
+  { to: '/register', label: 'Register', key: 'nav.register' },
 ];
 
 function Layout({ children }: { children: ReactNode }) {
   const { theme, toggleTheme } = useTheme();
+  const { t } = useTranslation();
   const location = useLocation();
 
   const themeLabel = theme === 'light' ? 'Light' : 'Dark';
@@ -36,11 +39,12 @@ function Layout({ children }: { children: ReactNode }) {
         <nav className="layout__nav">
           {navLinks.map(link => (
             <NavLink key={link.to} to={link.to} className={({ isActive }) => isActive ? 'active' : ''}>
-              {link.label}
+              {t(link.key) || link.label}
             </NavLink>
           ))}
         </nav>
         <div className="layout__actions">
+          <LanguageSelector />
           <Button variant="secondary" size="sm" aria-label="Toggle theme" onClick={toggleTheme}>
             {theme === 'light' ? '🌞' : '🌙'} {themeLabel}
           </Button>

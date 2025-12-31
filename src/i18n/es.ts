@@ -6,7 +6,10 @@ export default {
     continue: 'Continuar',
   },
   nav: {
-    home: 'Inicio',
+    home: 'Chat',
+    services: 'Servicios',
+    marketplace: 'Mercado',
+    postRequest: 'Crear solicitud',
     pricing: 'Precios',
     faq: 'Preguntas frecuentes',
     contact: 'Contacto',

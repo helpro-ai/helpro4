@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import './LanguageGate.css';
-import { setLanguage } from '../../utils/storage';
-import { Locale } from '../../i18n';
+import { Locale, useTranslation } from '../../i18n';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
 import { Input } from '../ui/Input';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 interface Props {
   onComplete: () => void;
@@ -18,19 +18,21 @@ const LANG_OPTIONS: { code: Locale; label: string }[] = [
 ];
 
 export default function LanguageGate({ onComplete }: Props) {
-  const [selected, setSelected] = useState<Locale>('en');
+  const { locale, setLocale } = useLanguage();
+  const { t } = useTranslation();
+  const [selected, setSelected] = useState<Locale>(locale);
   const [remember, setRemember] = useState(true);
 
   const handleContinue = () => {
-    setLanguage(selected, remember);
+    setLocale(selected, remember);
     onComplete();
   };
 
   return (
     <div className="language-gate">
       <Card className="language-gate__card animate-scale-in">
-        <h1>Choose Your Language</h1>
-        <p className="language-gate__subtitle">Select your preferred language to continue</p>
+        <h1>{t('language.title')}</h1>
+        <p className="language-gate__subtitle">{t('language.subtitle')}</p>
 
         <div className="language-gate__options">
           {LANG_OPTIONS.map(option => (
@@ -49,11 +51,11 @@ export default function LanguageGate({ onComplete }: Props) {
 
         <label className="language-gate__remember">
           <input type="checkbox" checked={remember} onChange={e => setRemember(e.target.checked)} />
-          Remember my choice
+          {t('language.remember')}
         </label>
 
         <div className="language-gate__actions">
-          <Button onClick={handleContinue}>Continue</Button>
+          <Button onClick={handleContinue}>{t('language.continue')}</Button>
           <Button variant="ghost" onClick={onComplete}>Skip</Button>
         </div>
 

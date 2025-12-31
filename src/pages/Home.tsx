@@ -3,14 +3,17 @@ import '../components/ui/ui.css';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { catalog } from '../data/catalog';
+import { useTranslation } from '../i18n';
 
 export default function Home() {
+  const { t } = useTranslation();
+
   return (
     <div className="page page--center">
       <div className="hero__content" style={{ textAlign: 'center' }}>
         <span className="eyebrow">Helpro Assistant</span>
-        <h1>Ask for cleaning help, get a draft in seconds.</h1>
-        <p className="lead">Home, office, or hotel—voice or text. Nothing leaves your browser during voice capture.</p>
+        <h1>{t('home.heroTitle')}</h1>
+        <p className="lead">{t('home.heroSubtitle')}</p>
         <div className="hero__actions" style={{ justifyContent: 'center' }}>
           <Button size="lg" onClick={() => { window.location.hash = '#/app/requests/new'; }}>Post a request</Button>
           <Button variant="secondary" size="lg" onClick={() => { window.location.hash = '#/services'; }}>Browse services</Button>

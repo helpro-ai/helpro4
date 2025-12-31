@@ -1,13 +1,19 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { sendChatMessage, ChatMessage, ChatResponse } from '../utils/api';
 import { generateRequestId } from '../utils/requestId';
 import { getLocale } from '../i18n';
+import { loadChatHistory, saveChatHistory, clearChatHistory } from '../utils/storage';
 
 export function useChat() {
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [messages, setMessages] = useState<ChatMessage[]>(() => loadChatHistory<ChatMessage>());
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [currentRequestId, setCurrentRequestId] = useState<string | null>(null);
+  const currentRequestIdRef = useRef<string | null>(null);
+
+  // Persist messages to localStorage whenever they change
+  useEffect(() => {
+    saveChatHistory(messages);
+  }, [messages]);
 
   const sendMessage = useCallback(async (content: string) => {
     if (!content.trim()) return;
@@ -18,7 +24,7 @@ export function useChat() {
     setError(null);
 
     const requestId = generateRequestId();
-    setCurrentRequestId(requestId);
+    currentRequestIdRef.current = requestId;
 
     try {
       const response: ChatResponse = await sendChatMessage({
@@ -28,8 +34,8 @@ export function useChat() {
       });
 
       // Guard against stale responses
-      if (currentRequestId && requestId !== currentRequestId) {
-        console.info('[Chat] Ignoring stale response', { requestId, currentRequestId });
+      if (currentRequestIdRef.current !== requestId) {
+        console.info('[Chat] Ignoring stale response', { requestId, current: currentRequestIdRef.current });
         return;
       }
 
@@ -45,15 +51,16 @@ export function useChat() {
       console.error('[Chat] Error sending message', err);
     } finally {
       setLoading(false);
-      setCurrentRequestId(null);
+      currentRequestIdRef.current = null;
     }
-  }, [messages, currentRequestId]);
+  }, []);
 
   const reset = useCallback(() => {
     setMessages([]);
     setError(null);
     setLoading(false);
-    setCurrentRequestId(null);
+    currentRequestIdRef.current = null;
+    clearChatHistory();
   }, []);
 
   return { messages, loading, error, sendMessage, reset };

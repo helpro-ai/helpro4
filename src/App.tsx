@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import LanguageGate from './components/LanguageGate/LanguageGate';
 import Layout from './components/Layout/Layout';
 import { shouldShowLanguageGate } from './utils/storage';
+import { LanguageProvider } from './contexts/LanguageContext';
 
 // Pages
 import Home from './pages/Home';
@@ -39,43 +40,45 @@ function App() {
     return null;
   }
 
-  if (showLanguageGate) {
-    return <LanguageGate onComplete={() => setShowLanguageGate(false)} />;
-  }
-
   return (
-    <HashRouter>
-      <Layout>
-        <Routes>
-          {/* Marketing */}
-          <Route path="/" element={<Home />} />
-          <Route path="/services" element={<Services />} />
-          <Route path="/pricing" element={<Pricing />} />
-          <Route path="/faq" element={<FAQ />} />
-          <Route path="/contact" element={<Contact />} />
-          
-          {/* Auth */}
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/forgot" element={<ForgotPassword />} />
-          
-          {/* App */}
-          <Route path="/app" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-          <Route path="/app/requests" element={<Requests />} />
-          <Route path="/app/requests/new" element={<RequestsNew />} />
-          <Route path="/app/marketplace" element={<Marketplace />} />
-          <Route path="/app/request/:id" element={<RequestDetail />} />
-          <Route path="/app/booking/:id" element={<BookingDetail />} />
-          <Route path="/app/bookings" element={<ProtectedRoute><Bookings /></ProtectedRoute>} />
-          <Route path="/app/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
-          <Route path="/app/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-          
-          {/* 404 */}
-          <Route path="/404" element={<NotFound />} />
-          <Route path="*" element={<Navigate to="/404" replace />} />
-        </Routes>
-      </Layout>
-    </HashRouter>
+    <LanguageProvider>
+      {showLanguageGate ? (
+        <LanguageGate onComplete={() => setShowLanguageGate(false)} />
+      ) : (
+        <HashRouter>
+          <Layout>
+            <Routes>
+              {/* Marketing */}
+              <Route path="/" element={<Home />} />
+              <Route path="/services" element={<Services />} />
+              <Route path="/pricing" element={<Pricing />} />
+              <Route path="/faq" element={<FAQ />} />
+              <Route path="/contact" element={<Contact />} />
+
+              {/* Auth */}
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
+              <Route path="/forgot" element={<ForgotPassword />} />
+
+              {/* App */}
+              <Route path="/app" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+              <Route path="/app/requests" element={<Requests />} />
+              <Route path="/app/requests/new" element={<RequestsNew />} />
+              <Route path="/app/marketplace" element={<Marketplace />} />
+              <Route path="/app/request/:id" element={<RequestDetail />} />
+              <Route path="/app/booking/:id" element={<BookingDetail />} />
+              <Route path="/app/bookings" element={<ProtectedRoute><Bookings /></ProtectedRoute>} />
+              <Route path="/app/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
+              <Route path="/app/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+
+              {/* 404 */}
+              <Route path="/404" element={<NotFound />} />
+              <Route path="*" element={<Navigate to="/404" replace />} />
+            </Routes>
+          </Layout>
+        </HashRouter>
+      )}
+    </LanguageProvider>
   );
 }
 

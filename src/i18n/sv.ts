@@ -6,7 +6,10 @@ export default {
     continue: 'Fortsätt',
   },
   nav: {
-    home: 'Hem',
+    home: 'Chatt',
+    services: 'Tjänster',
+    marketplace: 'Marknadsplats',
+    postRequest: 'Skapa förfrågan',
     pricing: 'Priser',
     faq: 'FAQ',
     contact: 'Kontakt',
