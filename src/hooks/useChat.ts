@@ -1,10 +1,11 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { sendChatMessage, ChatMessage, ChatResponse } from '../utils/api';
 import { generateRequestId } from '../utils/requestId';
-import { getLocale } from '../i18n';
+import { useLanguage } from '../contexts/LanguageContext';
 import { loadChatHistory, saveChatHistory, clearChatHistory } from '../utils/storage';
 
 export function useChat() {
+  const { locale } = useLanguage();
   const [messages, setMessages] = useState<ChatMessage[]>(() => loadChatHistory<ChatMessage>());
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -30,7 +31,7 @@ export function useChat() {
       const response: ChatResponse = await sendChatMessage({
         message: content.trim(),
         requestId,
-        locale: getLocale(),
+        locale,
       });
 
       // Guard against stale responses
@@ -53,7 +54,7 @@ export function useChat() {
       setLoading(false);
       currentRequestIdRef.current = null;
     }
-  }, []);
+  }, [locale]);
 
   const reset = useCallback(() => {
     setMessages([]);

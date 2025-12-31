@@ -1,22 +1,24 @@
 // Simplified NLP for serverless API (no imports from src/)
-type Locale = 'en' | 'sv' | 'de' | 'es' | 'fa';
-type IntentType = 'BOOK_SERVICE' | 'PROVIDER_SIGNUP' | 'GENERAL_QA' | 'UNKNOWN';
+// @ts-check
 
-interface NLPEntity {
-  location?: string;
-  timing?: string;
-  budget?: string;
-  hours?: number;
-  items?: number;
-  rooms?: number;
-}
-
-interface NLPResult {
-  detectedLanguage: Locale;
-  intent: IntentType;
-  category?: string;
-  entities: NLPEntity;
-}
+/**
+ * @typedef {'en' | 'sv' | 'de' | 'es' | 'fa'} Locale
+ * @typedef {'BOOK_SERVICE' | 'PROVIDER_SIGNUP' | 'GENERAL_QA' | 'UNKNOWN'} IntentType
+ * @typedef {{
+ *   location?: string;
+ *   timing?: string;
+ *   budget?: string;
+ *   hours?: number;
+ *   items?: number;
+ *   rooms?: number;
+ * }} NLPEntity
+ * @typedef {{
+ *   detectedLanguage: Locale;
+ *   intent: IntentType;
+ *   category?: string;
+ *   entities: NLPEntity;
+ * }} NLPResult
+ */
 
 // Valid category IDs from catalog.ts
 const VALID_CATEGORIES = [
@@ -32,7 +34,11 @@ const VALID_CATEGORIES = [
 ];
 
 // Language detection
-function detectLanguage(text: string): Locale {
+/**
+ * @param {string} text
+ * @returns {Locale}
+ */
+function detectLanguage(text) {
   const normalized = text.toLowerCase();
 
   if (/[\u0600-\u06FF]/.test(text)) return 'fa';
@@ -44,7 +50,8 @@ function detectLanguage(text: string): Locale {
 }
 
 // Intent classification
-const intentKeywords: Record<Locale, Record<string, string[]>> = {
+/** @type {Record<Locale, Record<string, string[]>>} */
+const intentKeywords = {
   en: {
     BOOK_SERVICE: ['need', 'want', 'looking for', 'help with', 'book', 'hire', 'cleaning', 'moving'],
     PROVIDER_SIGNUP: ['become helper', 'sign up as', 'offer services', 'work as'],
@@ -72,13 +79,18 @@ const intentKeywords: Record<Locale, Record<string, string[]>> = {
   },
 };
 
-function classifyIntent(text: string, locale: Locale): IntentType {
+/**
+ * @param {string} text
+ * @param {Locale} locale
+ * @returns {IntentType}
+ */
+function classifyIntent(text, locale) {
   const normalized = text.toLowerCase();
   const keywords = intentKeywords[locale] || intentKeywords.en;
 
   for (const [intent, words] of Object.entries(keywords)) {
     if (words.some(word => normalized.includes(word.toLowerCase()))) {
-      return intent as IntentType;
+      return /** @type {IntentType} */ (intent);
     }
   }
 
@@ -86,7 +98,8 @@ function classifyIntent(text: string, locale: Locale): IntentType {
 }
 
 // Category matching
-const categoryKeywords: Record<Locale, Record<string, string[]>> = {
+/** @type {Record<Locale, Record<string, string[]>>} */
+const categoryKeywords = {
   en: {
     'moving-delivery': ['moving', 'move', 'delivery', 'transport', 'van', 'truck'],
     'remove-recycle': ['remove', 'disposal', 'junk', 'recycle', 'trash'],
@@ -144,7 +157,12 @@ const categoryKeywords: Record<Locale, Record<string, string[]>> = {
   },
 };
 
-function matchCategory(text: string, locale: Locale): string | undefined {
+/**
+ * @param {string} text
+ * @param {Locale} locale
+ * @returns {string | undefined}
+ */
+function matchCategory(text, locale) {
   const normalized = text.toLowerCase();
   const keywords = categoryKeywords[locale] || categoryKeywords.en;
 
@@ -160,9 +178,14 @@ function matchCategory(text: string, locale: Locale): string | undefined {
 }
 
 // Entity extraction
-function extractEntities(text: string): NLPEntity {
+/**
+ * @param {string} text
+ * @returns {NLPEntity}
+ */
+function extractEntities(text) {
   const normalized = text.toLowerCase();
-  const entities: NLPEntity = {};
+  /** @type {NLPEntity} */
+  const entities = {};
 
   const hourMatch = normalized.match(/(\d+)\s*(hour|hr|hours|hrs|timme|stunde|hora|ساعت)/);
   if (hourMatch) entities.hours = parseInt(hourMatch[1], 10);
@@ -185,9 +208,14 @@ function extractEntities(text: string): NLPEntity {
   return entities;
 }
 
-export function analyzeMessage(text: string, userLocale?: string): NLPResult {
+/**
+ * @param {string} text
+ * @param {string} [userLocale]
+ * @returns {NLPResult}
+ */
+export function analyzeMessage(text, userLocale) {
   const detectedLanguage = detectLanguage(text);
-  const effectiveLocale = (detectedLanguage !== 'en' ? detectedLanguage : (userLocale as Locale || 'en'));
+  const effectiveLocale = (detectedLanguage !== 'en' ? detectedLanguage : (userLocale || 'en'));
 
   const intent = classifyIntent(text, effectiveLocale);
   const category = intent === 'BOOK_SERVICE' ? matchCategory(text, effectiveLocale) : undefined;
