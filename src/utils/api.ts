@@ -3,16 +3,42 @@ export interface ChatMessage {
   content: string;
 }
 
+export interface ConversationState {
+  step: string;
+  intent?: string;
+  serviceId?: string;
+  customServiceId?: string;
+  customServiceDraft?: {
+    name?: string;
+    groupId?: string;
+    locale?: string;
+  };
+  location?: string;
+  timing?: string;
+  scope?: {
+    rooms?: number;
+    hours?: number;
+    items?: number;
+  };
+  budget?: string;
+  servicesOffered?: string[];
+  area?: string;
+  availability?: string;
+}
+
 export interface ChatRequest {
   message: string;
   requestId?: string;
   locale?: string;
+  conversationState?: ConversationState | null;
 }
 
 export interface ChatResponse {
   status: 'ok';
   requestId: string;
   reply: string;
+  conversationState?: ConversationState;
+  suggestedActions?: string[];
 }
 
 export async function sendChatMessage(request: ChatRequest): Promise<ChatResponse> {

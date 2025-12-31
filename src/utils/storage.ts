@@ -96,3 +96,66 @@ export function clearIntakeState(): void {
     console.warn('[Storage] Failed to clear intake state:', error);
   }
 }
+
+// Custom services persistence
+const CUSTOM_SERVICES_KEY = 'helpro_custom_services_v1';
+
+export function loadCustomServices(): any[] {
+  try {
+    const stored = localStorage.getItem(CUSTOM_SERVICES_KEY);
+    if (!stored) return [];
+    const data = JSON.parse(stored);
+    return Array.isArray(data) ? data : [];
+  } catch (error) {
+    console.warn('[Storage] Failed to load custom services:', error);
+    return [];
+  }
+}
+
+export function saveCustomService(service: any): void {
+  try {
+    const existing = loadCustomServices();
+    existing.push({ ...service, id: `custom-${Date.now()}`, createdAt: new Date().toISOString() });
+    localStorage.setItem(CUSTOM_SERVICES_KEY, JSON.stringify(existing));
+  } catch (error) {
+    console.warn('[Storage] Failed to save custom service:', error);
+  }
+}
+
+export function clearCustomServices(): void {
+  try {
+    localStorage.removeItem(CUSTOM_SERVICES_KEY);
+  } catch (error) {
+    console.warn('[Storage] Failed to clear custom services:', error);
+  }
+}
+
+// Conversation state persistence
+const CONVERSATION_STATE_KEY = 'helpro_conversation_state_v1';
+
+export function loadConversationState<T = any>(): T | null {
+  try {
+    const stored = localStorage.getItem(CONVERSATION_STATE_KEY);
+    if (!stored) return null;
+    return JSON.parse(stored);
+  } catch (error) {
+    console.warn('[Storage] Failed to load conversation state:', error);
+    return null;
+  }
+}
+
+export function saveConversationState<T = any>(state: T): void {
+  try {
+    localStorage.setItem(CONVERSATION_STATE_KEY, JSON.stringify(state));
+  } catch (error) {
+    console.warn('[Storage] Failed to save conversation state:', error);
+  }
+}
+
+export function clearConversationState(): void {
+  try {
+    localStorage.removeItem(CONVERSATION_STATE_KEY);
+  } catch (error) {
+    console.warn('[Storage] Failed to clear conversation state:', error);
+  }
+}

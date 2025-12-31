@@ -1,12 +1,22 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { sendChatMessage, ChatMessage, ChatResponse } from '../utils/api';
+import { sendChatMessage, ChatMessage, ChatResponse, ConversationState } from '../utils/api';
 import { generateRequestId } from '../utils/requestId';
 import { useLanguage } from '../contexts/LanguageContext';
-import { loadChatHistory, saveChatHistory, clearChatHistory } from '../utils/storage';
+import {
+  loadChatHistory,
+  saveChatHistory,
+  clearChatHistory,
+  loadConversationState,
+  saveConversationState,
+  clearConversationState,
+} from '../utils/storage';
 
 export function useChat() {
   const { locale } = useLanguage();
   const [messages, setMessages] = useState<ChatMessage[]>(() => loadChatHistory<ChatMessage>());
+  const [conversationState, setConversationState] = useState<ConversationState | null>(() =>
+    loadConversationState<ConversationState>()
+  );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const currentRequestIdRef = useRef<string | null>(null);
@@ -15,6 +25,13 @@ export function useChat() {
   useEffect(() => {
     saveChatHistory(messages);
   }, [messages]);
+
+  // Persist conversation state whenever it changes
+  useEffect(() => {
+    if (conversationState) {
+      saveConversationState(conversationState);
+    }
+  }, [conversationState]);
 
   const sendMessage = useCallback(async (content: string) => {
     if (!content.trim()) return;
@@ -32,6 +49,7 @@ export function useChat() {
         message: content.trim(),
         requestId,
         locale,
+        conversationState,
       });
 
       // Guard against stale responses
@@ -46,7 +64,13 @@ export function useChat() {
       };
 
       setMessages(prev => [...prev, assistantMessage]);
-      console.info('[Chat] Message sent successfully', { requestId });
+
+      // Update conversation state from response
+      if (response.conversationState) {
+        setConversationState(response.conversationState);
+      }
+
+      console.info('[Chat] Message sent successfully', { requestId, state: response.conversationState });
     } catch (err: any) {
       setError(err.message || 'Failed to send message');
       console.error('[Chat] Error sending message', err);
@@ -54,15 +78,17 @@ export function useChat() {
       setLoading(false);
       currentRequestIdRef.current = null;
     }
-  }, [locale]);
+  }, [locale, conversationState]);
 
   const reset = useCallback(() => {
     setMessages([]);
+    setConversationState(null);
     setError(null);
     setLoading(false);
     currentRequestIdRef.current = null;
     clearChatHistory();
+    clearConversationState();
   }, []);
 
-  return { messages, loading, error, sendMessage, reset };
+  return { messages, loading, error, sendMessage, reset, conversationState };
 }

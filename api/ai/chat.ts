@@ -1,17 +1,12 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { analyzeMessage } from '../utils/nlp.js';
-import { buildReply } from '../utils/replyBuilder.js';
+import { generateAssistantResponse, sanitizeText as sanitize } from '../utils/assistantEngine.js';
+import type { ConversationState } from '../utils/conversationState.js';
 
 function respond(res: VercelResponse, status: number, payload: Record<string, unknown>) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   res.status(status).json(payload);
-}
-
-// Sanitize text output (prevent HTML injection)
-function sanitizeText(text: string): string {
-  return text.replace(/<[^>]*>/g, '').trim();
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -35,7 +30,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
   }
 
-  const { message, requestId, locale } = body;
+  const { message, requestId, locale, conversationState } = body;
 
   if (!message || typeof message !== 'string') {
     return respond(res, 400, { status: 'error', error: 'Message is required' });
@@ -50,17 +45,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     : `req-${Date.now()}`;
 
   try {
-    // Analyze message with NLP
-    const nlpResult = analyzeMessage(message, locale);
-
-    // Generate contextual multilingual reply
-    const reply = buildReply(nlpResult);
+    // Generate context-aware response with state machine
+    const previousState = conversationState as ConversationState | null;
+    const assistantResponse = generateAssistantResponse(message, locale || 'en', previousState);
 
     return respond(res, 200, {
       status: 'ok',
       requestId: safeRequestId,
-      reply: sanitizeText(reply),
-      meta: nlpResult, // Include NLP analysis in response
+      reply: sanitize(assistantResponse.reply),
+      conversationState: assistantResponse.nextState, // Return updated state
+      suggestedActions: assistantResponse.suggestedActions,
     });
   } catch (error: any) {
     console.error('[API] Error processing message:', error);

@@ -1,7 +1,6 @@
 import express from 'express';
 import cors from 'cors';
-import { analyzeMessage } from '../api/utils/nlp.js';
-import { buildReply } from '../api/utils/replyBuilder.js';
+import { generateAssistantResponse, sanitizeText } from '../api/utils/assistantEngine.js';
 
 const app = express();
 const PORT = 8080;
@@ -10,11 +9,6 @@ app.use(cors());
 app.use(express.json());
 
 const rateLimit = new Map();
-
-// Sanitize text output (prevent HTML injection)
-function sanitizeText(text) {
-  return text.replace(/<[^>]*>/g, '').trim();
-}
 
 // Health check endpoint (matches api/health.ts)
 app.get('/api/health', (req, res) => {
@@ -31,7 +25,7 @@ app.options('/api/health', (req, res) => {
 
 // AI Chat endpoint (matches api/ai/chat.ts)
 app.post('/api/ai/chat', (req, res) => {
-  const { message, requestId, locale } = req.body;
+  const { message, requestId, locale, conversationState } = req.body;
 
   // Validation
   if (!message || typeof message !== 'string') {
@@ -54,18 +48,17 @@ app.post('/api/ai/chat', (req, res) => {
   const safeRequestId = requestId || `req-${Date.now()}`;
 
   try {
-    // Analyze message with NLP (same as production)
-    const nlpResult = analyzeMessage(message, locale);
-
-    // Generate contextual multilingual reply (same as production)
-    const reply = buildReply(nlpResult);
+    // Generate context-aware response with state machine (same as production)
+    const previousState = conversationState || null;
+    const assistantResponse = generateAssistantResponse(message, locale || 'en', previousState);
 
     setTimeout(() => {
       res.json({
         status: 'ok',
         requestId: safeRequestId,
-        reply: sanitizeText(reply),
-        meta: nlpResult, // Include NLP analysis in response
+        reply: sanitizeText(assistantResponse.reply),
+        conversationState: assistantResponse.nextState, // Return updated state
+        suggestedActions: assistantResponse.suggestedActions,
       });
     }, 800); // Simulate network delay
   } catch (error) {
