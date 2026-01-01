@@ -1,19 +1,16 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { generateAssistantResponse, sanitizeText as sanitize } from '../utils/assistantEngine.js';
+import { applySecurityHeaders } from '../utils/securityHeaders.js';
 import type { ConversationState } from '../utils/conversationState.js';
 
 function respond(res: VercelResponse, status: number, payload: Record<string, unknown>) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  applySecurityHeaders(res, { methods: 'POST,OPTIONS', headers: 'Content-Type,X-Request-ID' });
   res.status(status).json(payload);
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method === 'OPTIONS') {
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    applySecurityHeaders(res, { methods: 'POST,OPTIONS', headers: 'Content-Type,X-Request-ID' });
     return res.status(204).end();
   }
 

@@ -44,8 +44,21 @@ export default function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(400).json({ ok: false, error: 'Missing code' });
   }
 
-  // Dev/demo logic: accept 123456 (یا هر 6 رقمی اگر خواستی ساده‌تر باشد)
-  const isValid = code === '123456' || /^\d{6}$/.test(code);
+  // SECURITY FIX: Only allow dev bypass in non-production environments
+  const isProd = process.env.NODE_ENV === 'production';
+
+  let isValid = false;
+
+  if (isProd) {
+    // Production: Must use real verification logic
+    // TODO: Implement actual email verification with temporary codes stored in DB
+    // For now, reject all codes in production to prevent security bypass
+    return res.status(400).json({ ok: false, error: 'Verification not yet implemented for production' });
+  } else {
+    // Development only: accept 123456 for testing
+    isValid = code === '123456';
+  }
+
   if (!isValid) {
     return res.status(400).json({ ok: false, error: 'Invalid code' });
   }
