@@ -8,6 +8,7 @@
  * @typedef {{
  *   step: ConversationStep;
  *   intent?: IntentType;
+ *   uiLocale?: Locale;
  *   segment?: string;
  *   serviceId?: string;
  *   customServiceId?: string;
@@ -47,6 +48,7 @@ export function initConversationState(intent) {
  * @param {ConversationState} currentState
  * @param {{
  *   intent?: IntentType;
+ *   uiLocale?: Locale;
  *   segment?: string;
  *   serviceId?: string;
  *   customServiceDraft?: any;
@@ -65,6 +67,7 @@ export function advanceConversationState(currentState, newInfo) {
 
   // Merge new information
   if (newInfo.intent) nextState.intent = newInfo.intent;
+  if (newInfo.uiLocale) nextState.uiLocale = newInfo.uiLocale;
   if (newInfo.segment) nextState.segment = newInfo.segment;
   if (newInfo.serviceId) nextState.serviceId = newInfo.serviceId;
   if (newInfo.customServiceDraft) nextState.customServiceDraft = { ...nextState.customServiceDraft, ...newInfo.customServiceDraft };

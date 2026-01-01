@@ -6,6 +6,7 @@ export interface ChatMessage {
 export interface ConversationState {
   step: string;
   intent?: string;
+  uiLocale?: string; // Lock output language to user's selected locale
   segment?: string; // 'home' | 'office' | 'hotel' for quick actions
   serviceId?: string;
   customServiceId?: string;

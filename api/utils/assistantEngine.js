@@ -152,6 +152,88 @@ function isQuickActionToken(message) {
 }
 
 /**
+ * Check if message is a confirmation (Yes/Send/Submit)
+ * @param {string} message
+ * @param {Locale} locale
+ * @returns {boolean}
+ */
+function isConfirmation(message, locale) {
+  const normalized = message.toLowerCase().trim();
+
+  // Remove common Persian typos/variations
+  const persianNormalized = normalized.replace(/تب/g, 'تا').replace(/\s+/g, ' ');
+
+  const confirmationKeywords = {
+    en: ['yes', 'ok', 'okay', 'send', 'confirm', 'submit', 'post', 'book', 'go ahead', 'sure'],
+    sv: ['ja', 'okej', 'ok', 'skicka', 'bekräfta', 'posta', 'boka', 'kör'],
+    de: ['ja', 'ok', 'okay', 'senden', 'bestätigen', 'absenden', 'buchen'],
+    es: ['sí', 'si', 'ok', 'okay', 'enviar', 'confirmar', 'publicar', 'reservar'],
+    fa: ['بله', 'آره', 'اره', 'باشه', 'باشد', 'تایید', 'ارسال', 'بفرست', 'بفرستید', 'ثبت', 'ثبت کن', 'رزرو'],
+  };
+
+  const keywords = confirmationKeywords[locale] || confirmationKeywords.en;
+
+  // Check if message contains any confirmation keyword
+  for (const keyword of keywords) {
+    if (persianNormalized.includes(keyword) || normalized.includes(keyword)) {
+      return true;
+    }
+  }
+
+  // Also check English keywords as fallback for all locales
+  if (locale !== 'en') {
+    for (const keyword of confirmationKeywords.en) {
+      if (normalized.includes(keyword)) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
+/**
+ * Normalize Persian day names and availability expressions
+ * @param {string} text
+ * @returns {string}
+ */
+function normalizePersianAvailability(text) {
+  // Day name mappings (Persian → English)
+  const dayMappings = {
+    'شنبه': 'Saturday',
+    'یکشنبه': 'Sunday',
+    'دوشنبه': 'Monday',
+    'سه شنبه': 'Tuesday',
+    'سه‌شنبه': 'Tuesday',
+    'چهارشنبه': 'Wednesday',
+    'چهار شنبه': 'Wednesday',
+    'پنجشنبه': 'Thursday',
+    'پنج شنبه': 'Thursday',
+    'جمعه': 'Friday',
+  };
+
+  // Common typos/variations
+  const typoMappings = {
+    'تب': 'تا',
+    'شمبه': 'شنبه',
+  };
+
+  let normalized = text;
+
+  // Fix typos first
+  for (const [typo, correct] of Object.entries(typoMappings)) {
+    normalized = normalized.replace(new RegExp(typo, 'g'), correct);
+  }
+
+  // Replace Persian day names with English equivalents
+  for (const [persian, english] of Object.entries(dayMappings)) {
+    normalized = normalized.replace(new RegExp(persian, 'g'), english);
+  }
+
+  return normalized;
+}
+
+/**
  * Select a variation from an array deterministically based on requestId
  * @param {string[]} variations
  * @param {string} requestId
@@ -183,22 +265,21 @@ function selectVariation(variations, requestId = '') {
  * @returns {AssistantResponse}
  */
 export function generateAssistantResponse(message, locale, previousState, requestId = '') {
-  // Step 1: Analyze message with NLP
+  // Step 1: Analyze message with NLP (for parsing only, NOT for output language)
   const nlpResult = analyzeMessage(message, locale);
 
-  // Step 2: Determine reply locale (source of truth)
-  // - Quick actions: use request locale
-  // - Otherwise: prefer NLP-detected language, fallback to request locale
-  const replyLocale = isQuickActionToken(message)
-    ? (locale || 'en')
-    : (nlpResult.detectedLanguage || locale || 'en');
-
-  // Step 3: Initialize or preserve conversation state
+  // Step 2: Initialize or preserve conversation state
   const currentState = previousState || initConversationState(null);
+
+  // Step 3: Lock output language to UI locale (always use request locale for replies)
+  // This prevents language flip when user types in different language
+  const uiLocale = locale || currentState.uiLocale || 'en';
+  const replyLocale = uiLocale; // Output locked to UI selection
 
   // Step 4: Handle quick actions (Home/Office/Hotel/Today/Weekend)
   const normalized = message.toLowerCase().trim();
   const newInfo = {
+    uiLocale: uiLocale, // Persist UI locale in state to prevent language flipping
     location: nlpResult.entities.location,
     timing: nlpResult.entities.timing,
     scope: {
@@ -259,7 +340,39 @@ export function generateAssistantResponse(message, locale, previousState, reques
 
   // Step 5d: Capture availability for PROVIDER_SIGNUP
   if (currentState.intent === 'PROVIDER_SIGNUP' && currentState.step === 'ASK_AVAILABILITY' && message.trim().length > 0) {
-    newInfo.availability = message.trim();
+    // Normalize Persian day names to English for consistent storage
+    newInfo.availability = normalizePersianAvailability(message.trim());
+  }
+
+  // Step 5e: Handle confirmation at CONFIRM_SUMMARY or CONFIRM_PROFILE steps
+  if ((currentState.step === 'CONFIRM_SUMMARY' || currentState.step === 'CONFIRM_PROFILE') && isConfirmation(message, uiLocale)) {
+    // User confirmed - transition to COMPLETE
+    const nextState = { ...currentState, step: 'COMPLETE' };
+
+    // Generate success message
+    const successMessage = {
+      en: currentState.intent === 'PROVIDER_SIGNUP'
+        ? 'Great! Your helper profile has been created. You\'ll start receiving booking requests from customers in your area soon.'
+        : 'Perfect! Your service request has been posted. You\'ll receive offers from helpers in your area shortly.',
+      sv: currentState.intent === 'PROVIDER_SIGNUP'
+        ? 'Fantastiskt! Din hjälparprofil har skapats. Du kommer snart att börja ta emot bokningsförfrågningar från kunder i ditt område.'
+        : 'Perfekt! Din serviceförfrågan har publicerats. Du får snart erbjudanden från hjälpare i ditt område.',
+      de: currentState.intent === 'PROVIDER_SIGNUP'
+        ? 'Großartig! Ihr Helferprofil wurde erstellt. Sie erhalten bald Buchungsanfragen von Kunden in Ihrer Nähe.'
+        : 'Perfekt! Ihre Serviceanfrage wurde veröffentlicht. Sie erhalten in Kürze Angebote von Helfern in Ihrer Nähe.',
+      es: currentState.intent === 'PROVIDER_SIGNUP'
+        ? '¡Genial! Tu perfil de ayudante ha sido creado. Pronto comenzarás a recibir solicitudes de reserva de clientes en tu área.'
+        : '¡Perfecto! Tu solicitud de servicio ha sido publicada. Recibirás ofertas de ayudantes en tu área en breve.',
+      fa: currentState.intent === 'PROVIDER_SIGNUP'
+        ? 'عالی! پروفایل کمک‌کننده شما ایجاد شد. به زودی درخواست‌های رزرو از مشتریان منطقه خود را دریافت خواهید کرد.'
+        : 'عالی! درخواست خدمت شما ثبت شد. به زودی پیشنهادهایی از کمک‌کنندگان منطقه خود دریافت خواهید کرد.',
+    };
+
+    return {
+      reply: successMessage[uiLocale] || successMessage.en,
+      nextState,
+      suggestedActions: [], // No suggestions after completion
+    };
   }
 
   // Step 6: Advance conversation state
@@ -488,6 +601,73 @@ function generateSuggestions(state, locale) {
       { id: 'today', label: l.today, value: l.today },
       { id: 'tomorrow', label: l.tomorrow, value: l.tomorrow },
       { id: 'weekend', label: l.weekend, value: l.weekend },
+    ];
+  }
+
+  // ASK_SERVICES_OFFERED: Suggest popular helper services
+  if (state.step === 'ASK_SERVICES_OFFERED') {
+    const serviceLabels = {
+      en: { cleaning: 'Cleaning', moving: 'Moving', handyman: 'Handyman' },
+      sv: { cleaning: 'Städning', moving: 'Flytt', handyman: 'Hantverkare' },
+      de: { cleaning: 'Reinigung', moving: 'Umzug', handyman: 'Handwerker' },
+      es: { cleaning: 'Limpieza', moving: 'Mudanza', handyman: 'Manitas' },
+      fa: { cleaning: 'نظافت', moving: 'اسباب‌کشی', handyman: 'تعمیرکار' },
+    };
+    const l = serviceLabels[locale] || serviceLabels.en;
+    return [
+      { id: 'cleaning', label: l.cleaning, value: l.cleaning },
+      { id: 'moving', label: l.moving, value: l.moving },
+      { id: 'handyman', label: l.handyman, value: l.handyman },
+    ];
+  }
+
+  // ASK_AREA: Suggest major cities
+  if (state.step === 'ASK_AREA') {
+    return [
+      { id: 'stockholm', label: 'Stockholm', value: 'Stockholm' },
+      { id: 'goteborg', label: 'Göteborg', value: 'Göteborg' },
+      { id: 'malmo', label: 'Malmö', value: 'Malmö' },
+    ];
+  }
+
+  // ASK_AVAILABILITY: Suggest common availability patterns
+  if (state.step === 'ASK_AVAILABILITY') {
+    const availLabels = {
+      en: { weekdays: 'Weekdays', weekends: 'Weekends', evenings: 'Evenings' },
+      sv: { weekdays: 'Vardagar', weekends: 'Helger', evenings: 'Kvällar' },
+      de: { weekdays: 'Wochentage', weekends: 'Wochenenden', evenings: 'Abende' },
+      es: { weekdays: 'Días laborables', weekends: 'Fines de semana', evenings: 'Tardes' },
+      fa: { weekdays: 'روزهای هفته', weekends: 'آخر هفته', evenings: 'عصرها' },
+    };
+    const l = availLabels[locale] || availLabels.en;
+    return [
+      { id: 'weekdays', label: l.weekdays, value: l.weekdays },
+      { id: 'weekends', label: l.weekends, value: l.weekends },
+      { id: 'evenings', label: l.evenings, value: l.evenings },
+    ];
+  }
+
+  // CONFIRM_SUMMARY or CONFIRM_PROFILE: Suggest confirm/edit actions
+  if (state.step === 'CONFIRM_SUMMARY' || state.step === 'CONFIRM_PROFILE') {
+    const confirmLabels = {
+      en: { confirm: 'Send', edit: 'Edit' },
+      sv: { confirm: 'Skicka', edit: 'Redigera' },
+      de: { confirm: 'Senden', edit: 'Bearbeiten' },
+      es: { confirm: 'Enviar', edit: 'Editar' },
+      fa: { confirm: 'ارسال', edit: 'ویرایش' },
+    };
+    const confirmValues = {
+      en: { confirm: 'yes send', edit: 'edit' },
+      sv: { confirm: 'ja skicka', edit: 'redigera' },
+      de: { confirm: 'ja senden', edit: 'bearbeiten' },
+      es: { confirm: 'sí enviar', edit: 'editar' },
+      fa: { confirm: 'بله ارسال', edit: 'ویرایش' },
+    };
+    const l = confirmLabels[locale] || confirmLabels.en;
+    const v = confirmValues[locale] || confirmValues.en;
+    return [
+      { id: 'confirm', label: l.confirm, value: v.confirm },
+      { id: 'edit', label: l.edit, value: v.edit },
     ];
   }
 
