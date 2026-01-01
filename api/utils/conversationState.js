@@ -87,7 +87,7 @@ export function advanceConversationState(currentState, newInfo) {
       nextState.step = 'ASK_LOCATION';
     } else if (!nextState.timing) {
       nextState.step = 'ASK_TIME';
-    } else if (!nextState.scope) {
+    } else if (!nextState.scope || (!nextState.scope.rooms && !nextState.scope.hours && !nextState.scope.items)) {
       nextState.step = 'ASK_SCOPE';
     } else {
       nextState.step = 'CONFIRM_SUMMARY';

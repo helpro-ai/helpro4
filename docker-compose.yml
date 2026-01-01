@@ -1,0 +1,80 @@
+version: '3.8'
+
+services:
+  # Python NLP Service
+  nlp:
+    build:
+      context: ./services/nlp
+      dockerfile: Dockerfile
+    container_name: helpro-nlp
+    ports:
+      - "8000:8000"
+    environment:
+      - NLP_LOG_LEVEL=INFO
+      - NLP_STORE_REQUESTS=false
+      - NLP_USE_SEMANTIC=false
+      - ALLOWED_ORIGINS=*
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+    restart: unless-stopped
+    networks:
+      - helpro-network
+
+  # Express API Server
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    container_name: helpro-api
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=development
+      - PORT=3001
+      - NLP_URL=http://nlp:8000
+      - ALLOWED_ORIGINS=http://localhost:5173
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+    depends_on:
+      nlp:
+        condition: service_healthy
+    volumes:
+      - ./server:/app/server
+      - ./api:/app/api
+      - /app/node_modules
+    restart: unless-stopped
+    networks:
+      - helpro-network
+
+  # Vite Development Server
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+    container_name: helpro-web
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_API_BASE_URL=http://localhost:3001
+      - VITE_GOOGLE_CLIENT_ID=${VITE_GOOGLE_CLIENT_ID}
+    volumes:
+      - ./src:/app/src
+      - ./public:/app/public
+      - ./index.html:/app/index.html
+      - ./vite.config.ts:/app/vite.config.ts
+      - ./tsconfig.json:/app/tsconfig.json
+      - ./tsconfig.node.json:/app/tsconfig.node.json
+      - /app/node_modules
+    command: npm run dev -- --host 0.0.0.0
+    depends_on:
+      - api
+    restart: unless-stopped
+    networks:
+      - helpro-network
+
+networks:
+  helpro-network:
+    driver: bridge

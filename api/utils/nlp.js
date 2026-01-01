@@ -64,12 +64,12 @@ function detectLanguage(text) {
 /** @type {Record<Locale, Record<string, string[]>>} */
 const intentKeywords = {
   en: {
-    BOOK_SERVICE: ['need', 'want', 'looking for', 'help with', 'book', 'hire', 'cleaning', 'moving'],
-    PROVIDER_SIGNUP: ['become helper', 'sign up as', 'offer services', 'work as'],
-    GENERAL_QA: ['how', 'what', 'why', 'when', 'pricing', 'price', 'cost'],
+    BOOK_SERVICE: ['need', 'want', 'looking for', 'help with', 'book', 'hire', 'cleaning', 'moving', 'mount', 'mounting', 'assemble', 'assembly', 'become a helper'],
+    PROVIDER_SIGNUP: ['become helper', 'sign up as', 'offer services', 'work as', 'i want to become'],
+    GENERAL_QA: ['how', 'what', 'why', 'when', 'pricing', 'price', 'cost', 'do you have', 'does it'],
   },
   sv: {
-    BOOK_SERVICE: ['behöver', 'vill', 'söker', 'hjälp med', 'boka', 'städning'],
+    BOOK_SERVICE: ['behöver', 'vill', 'vill ha', 'söker', 'hjälp med', 'boka', 'städning', 'städa', 'flytt', 'flyttning', 'kan ni', 'montering', 'montera'],
     PROVIDER_SIGNUP: ['bli hjälpare', 'registrera som', 'erbjuda tjänster'],
     GENERAL_QA: ['hur', 'vad', 'varför', 'när', 'pris'],
   },
@@ -84,8 +84,8 @@ const intentKeywords = {
     GENERAL_QA: ['cómo', 'qué', 'por qué', 'cuándo', 'precio'],
   },
   fa: {
-    BOOK_SERVICE: ['نیاز', 'می خواهم', 'کمک', 'رزرو', 'نظافت', 'خدمت'],
-    PROVIDER_SIGNUP: ['همکار شدن', 'ثبت نام', 'نام نویسی', 'ارائه خدمات'],
+    BOOK_SERVICE: ['نیاز', 'می خواهم', 'میخواهم', 'رزرو', 'نظافت', 'خدمت', 'اسباب کشی', 'اسباب‌کشی', 'حمل'],
+    PROVIDER_SIGNUP: ['همکار شدن', 'ثبت نام کنم', 'ثبت‌نام', 'ثبت نام', 'نام نویسی', 'ارائه خدمات', 'کار کردن'],
     GENERAL_QA: ['چگونه', 'چطور', 'چه طور', 'چی', 'چیه', 'چه', 'چرا', 'کی', 'کجا', 'چند', 'قیمت', 'پرداخت', 'واریز', 'تسویه', 'پول', 'هزینه', 'کارمزد', 'لغو', 'کنسل', 'بازگشت پول', 'ریفاند', 'بیمه', 'امنیت', 'تایید', 'اعتبار', 'زمان', 'چقدر', 'دریافت پول'],
   },
 };
@@ -124,20 +124,35 @@ function classifyIntent(text, locale) {
   const normalized = normalizeText(text);
   const keywords = intentKeywords[locale] || intentKeywords.en;
 
-  // Check locale-specific keywords
-  for (const [intent, words] of Object.entries(keywords)) {
-    if (words.some(word => normalized.includes(normalizeText(word)))) {
-      return /** @type {IntentType} */ (intent);
-    }
+  // Check PROVIDER_SIGNUP first (higher priority to avoid false BOOK_SERVICE matches)
+  if (keywords.PROVIDER_SIGNUP && keywords.PROVIDER_SIGNUP.some(word => normalized.includes(normalizeText(word)))) {
+    return 'PROVIDER_SIGNUP';
+  }
+
+  // Check GENERAL_QA second
+  if (keywords.GENERAL_QA && keywords.GENERAL_QA.some(word => normalized.includes(normalizeText(word)))) {
+    return 'GENERAL_QA';
+  }
+
+  // Check BOOK_SERVICE last (most common, but should be after specific intents)
+  if (keywords.BOOK_SERVICE && keywords.BOOK_SERVICE.some(word => normalized.includes(normalizeText(word)))) {
+    return 'BOOK_SERVICE';
   }
 
   // Fallback: Check English keywords for any locale (handles English suggestion values)
   if (locale !== 'en') {
     const enKeywords = intentKeywords.en;
-    for (const [intent, words] of Object.entries(enKeywords)) {
-      if (words.some(word => normalized.includes(word.toLowerCase()))) {
-        return /** @type {IntentType} */ (intent);
-      }
+
+    if (enKeywords.PROVIDER_SIGNUP && enKeywords.PROVIDER_SIGNUP.some(word => normalized.includes(word.toLowerCase()))) {
+      return 'PROVIDER_SIGNUP';
+    }
+
+    if (enKeywords.GENERAL_QA && enKeywords.GENERAL_QA.some(word => normalized.includes(word.toLowerCase()))) {
+      return 'GENERAL_QA';
+    }
+
+    if (enKeywords.BOOK_SERVICE && enKeywords.BOOK_SERVICE.some(word => normalized.includes(word.toLowerCase()))) {
+      return 'BOOK_SERVICE';
     }
   }
 
@@ -148,25 +163,25 @@ function classifyIntent(text, locale) {
 /** @type {Record<Locale, Record<string, string[]>>} */
 const categoryKeywords = {
   en: {
-    'moving-delivery': ['moving', 'move', 'delivery', 'transport', 'van', 'truck'],
+    'moving-delivery': ['moving', 'move', 'delivery', 'transport', 'van', 'truck', 'relocate'],
     'remove-recycle': ['remove', 'disposal', 'junk', 'recycle', 'trash'],
     'buy-for-me': ['buy', 'shopping', 'groceries', 'errands'],
-    assembly: ['assembly', 'assemble', 'furniture', 'ikea'],
-    mounting: ['mount', 'install', 'hang', 'tv', 'shelf'],
-    cleaning: ['clean', 'cleaning', 'tidy', 'scrub', 'vacuum'],
+    assembly: ['assembly', 'assemble', 'furniture', 'ikea', 'flat pack'],
+    mounting: ['mount', 'mounting', 'install', 'hang', 'tv', 'shelf', 'wall'],
+    cleaning: ['clean', 'cleaning', 'tidy', 'scrub', 'vacuum', 'städa'],
     yard: ['yard', 'garden', 'lawn', 'mowing', 'leaves'],
     repairs: ['repair', 'fix', 'broken', 'handyman'],
     painting: ['paint', 'painting', 'touch-up'],
   },
   sv: {
-    'moving-delivery': ['flytt', 'flyttning', 'leverans', 'transport'],
+    'moving-delivery': ['flytt', 'flyttning', 'leverans', 'transport', 'moving'],
     'remove-recycle': ['bortforsling', 'återvinning', 'skräp'],
     'buy-for-me': ['köpa', 'shopping', 'matvaror'],
-    assembly: ['montering', 'montera', 'möbel'],
-    mounting: ['montera', 'installera', 'hänga', 'tv'],
-    cleaning: ['städ', 'städning', 'rengöring'],
+    assembly: ['montering', 'montera', 'möbel', 'ikea', 'assembly'],
+    mounting: ['montera', 'installera', 'hänga', 'tv', 'mounting'],
+    cleaning: ['städ', 'städning', 'städa', 'rengöring'],
     yard: ['trädgård', 'gräsmatta', 'klippa'],
-    repairs: ['reparation', 'fixa', 'laga'],
+    repairs: ['reparation', 'fixa', 'laga', 'hantverkare'],
     painting: ['målning', 'måla'],
   },
   de: {
@@ -192,15 +207,15 @@ const categoryKeywords = {
     painting: ['pintura', 'pintar'],
   },
   fa: {
-    'moving-delivery': ['اسباب‌کشی', 'حمل', 'تحویل'],
+    'moving-delivery': ['اسباب‌کشی', 'اسباب کشی', 'حمل', 'تحویل', 'ترابری'],
     'remove-recycle': ['جمع‌آوری', 'بازیافت', 'زباله'],
     'buy-for-me': ['خرید', 'خریدکردن', 'مواد‌غذایی'],
     assembly: ['مونتاژ', 'سوار کردن', 'مبل'],
-    mounting: ['نصب', 'آویزان کردن', 'تلویزیون'],
-    cleaning: ['نظافت', 'تمیزکردن'],
+    mounting: ['نصب', 'آویزان کردن', 'تلویزیون', 'راه اندازی'],
+    cleaning: ['نظافت', 'تمیزکردن', 'تمیز', 'خانه تکانی'],
     yard: ['باغچه', 'چمن'],
-    repairs: ['تعمیر', 'تعمیرات'],
-    painting: ['نقاشی', 'رنگ‌آمیزی'],
+    repairs: ['تعمیر', 'تعمیرات', 'درست کردن'],
+    painting: ['نقاشی', 'رنگ‌آمیزی', 'رنگ'],
   },
 };
 
@@ -210,11 +225,11 @@ const categoryKeywords = {
  * @returns {string | undefined}
  */
 function matchCategory(text, locale) {
-  const normalized = text.toLowerCase();
+  const normalized = normalizeText(text);
   const keywords = categoryKeywords[locale] || categoryKeywords.en;
 
   for (const [category, words] of Object.entries(keywords)) {
-    if (words.some(word => normalized.includes(word.toLowerCase()))) {
+    if (words.some(word => normalized.includes(normalizeText(word)))) {
       if (VALID_CATEGORIES.includes(category)) {
         return category;
       }
@@ -234,23 +249,46 @@ function extractEntities(text) {
   /** @type {NLPEntity} */
   const entities = {};
 
-  const hourMatch = normalized.match(/(\d+)\s*(hour|hr|hours|hrs|timme|stunde|hora|ساعت)/);
-  if (hourMatch) entities.hours = parseInt(hourMatch[1], 10);
+  // Convert Persian/Arabic digits to Western digits for consistent matching
+  const normalizedDigits = text.replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d));
 
-  const roomMatch = normalized.match(/(\d+)\s*(room|rooms|bed|rum|zimmer|habitación|اتاق)/);
-  if (roomMatch) entities.rooms = parseInt(roomMatch[1], 10);
+  // Hours: support Western and Persian digits
+  const hourMatch = normalizedDigits.match(/([0-9۰-۹]+)\s*(hour|hr|hours|hrs|timme|timmar|stunde|hora|ساعت)/i);
+  if (hourMatch) {
+    const digitStr = hourMatch[1].replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d).toString());
+    entities.hours = parseInt(digitStr, 10);
+  }
 
-  const itemMatch = normalized.match(/(\d+)\s*(item|items|sak|artikel|cosa|چیز)/);
-  if (itemMatch) entities.items = parseInt(itemMatch[1], 10);
+  // Rooms: support Western and Persian digits
+  const roomMatch = normalizedDigits.match(/([0-9۰-۹]+)\s*(room|rooms|bed|bedroom|rum|zimmer|habitación|اتاق|اطاق)/i);
+  if (roomMatch) {
+    const digitStr = roomMatch[1].replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d).toString());
+    entities.rooms = parseInt(digitStr, 10);
+  }
 
-  const locationMatch = text.match(/\b(stockholm|göteborg|malmö|berlin|madrid|barcelona|paris|london|استکهلم)\b/i);
+  // Items: support Western and Persian digits
+  const itemMatch = normalizedDigits.match(/([0-9۰-۹]+)\s*(item|items|sak|artikel|cosa|چیز|مورد)/i);
+  if (itemMatch) {
+    const digitStr = itemMatch[1].replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d).toString());
+    entities.items = parseInt(digitStr, 10);
+  }
+
+  // Location: support common Swedish cities + Persian spellings
+  // Note: \b doesn't work well with Persian, so use lookahead/lookbehind or simple match
+  const locationMatch = text.match(/(stockholm|göteborg|malmö|södertälje|uppsala|västerås|örebro|linköping|berlin|madrid|barcelona|paris|london|استکهلم|استوکهلم|گوتبورگ|مالمو)/i);
   if (locationMatch) entities.location = locationMatch[1];
 
-  const timingMatch = normalized.match(/\b(today|tomorrow|idag|imorgon|heute|morgen|hoy|mañana|امروز|فردا)\b/);
+  // Timing: support Swedish time phrases (idag, imorgon, helgen, kväll, morgon) + Persian
+  // Note: \b doesn't work well with Persian, so use lookahead/lookbehind or simple match
+  const timingMatch = text.match(/(today|tomorrow|tonight|this\s+week|weekend|idag|imorgon|i\s*morgon|helgen|i\s*helgen|kväll|kvällen|morgon|morgonen|heute|morgen|hoy|mañana|امروز|فردا|عصر|صبح|شب|هفته)/i);
   if (timingMatch) entities.timing = timingMatch[1];
 
-  const budgetMatch = text.match(/(\d+)\s*(kr|sek|€|eur|\$|تومان)/i);
-  if (budgetMatch) entities.budget = `${budgetMatch[1]} ${budgetMatch[2]}`;
+  // Budget: support SEK, EUR, USD, Toman
+  const budgetMatch = text.match(/([0-9۰-۹]+)\s*(kr|sek|€|eur|\$|usd|تومان|کرون)/i);
+  if (budgetMatch) {
+    const digitStr = budgetMatch[1].replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d).toString());
+    entities.budget = `${digitStr} ${budgetMatch[2]}`;
+  }
 
   return entities;
 }
