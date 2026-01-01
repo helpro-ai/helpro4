@@ -1,37 +1,74 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { OAuth2Client } from 'google-auth-library';
 
-function parseJwt(token: string) {
-  try {
-    const payload = token.split('.')[1];
-    const base64 = payload.replace(/-/g, '+').replace(/_/g, '/');
-    const json = Buffer.from(base64, 'base64').toString('utf8');
-    return JSON.parse(json);
-  } catch (e) {
-    return null;
-  }
-}
-
-export default function handler(req: VercelRequest, res: VercelResponse) {
+function setCors(res: VercelResponse) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST,OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+}
 
-  if (req.method === 'OPTIONS') {
-    return res.status(204).end();
+function safeJsonBody(req: VercelRequest): any {
+  const body: any = (req as any).body;
+  if (!body) return {};
+
+  // Vercel usually gives an object, but handle string/buffer just in case
+  if (Buffer.isBuffer(body)) {
+    try { return JSON.parse(body.toString('utf8')); } catch { return {}; }
   }
 
-  if (req.method !== 'POST') {
-    return res.status(405).json({ ok: false, error: 'Method not allowed' });
+  if (typeof body === 'string') {
+    try { return JSON.parse(body); } catch { return {}; }
   }
 
-  const { credential } = req.body || {};
+  if (typeof body === 'object') return body;
+  return {};
+}
+
+function getClientId() {
+  // Prefer server env var, fallback to VITE_* for dev convenience
+  return process.env.GOOGLE_CLIENT_ID || process.env.VITE_GOOGLE_CLIENT_ID || '';
+}
+
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+  setCors(res);
+
+  if (req.method === 'OPTIONS') return res.status(204).end();
+  if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'Method not allowed' });
+
+  const clientId = getClientId();
+  if (!clientId) {
+    return res.status(500).json({
+      ok: false,
+      error: 'Server not configured (missing GOOGLE_CLIENT_ID)',
+      hint: 'Set GOOGLE_CLIENT_ID on server env. (VITE_GOOGLE_CLIENT_ID is client-side)',
+    });
+  }
+
+  const { credential } = safeJsonBody(req);
   if (!credential || typeof credential !== 'string') {
     return res.status(400).json({ ok: false, error: 'Missing credential' });
   }
 
-  const payload = parseJwt(credential);
-  const email = payload?.email;
+  try {
+    const oauth = new OAuth2Client(clientId);
 
-  // Minimal local logic: return verified if email present
-  return res.status(200).json({ ok: true, verified: !!email, email: email || null });
+    const ticket = await oauth.verifyIdToken({
+      idToken: credential,
+      audience: clientId,
+    });
+
+    const payload = ticket.getPayload();
+    const email = payload?.email ?? null;
+    const verified = !!payload?.email_verified;
+
+    return res.status(200).json({
+      ok: true,
+      verified,
+      email,
+      name: payload?.name ?? null,
+      picture: payload?.picture ?? null,
+    });
+  } catch (e) {
+    return res.status(400).json({ ok: false, error: 'Invalid credential' });
+  }
 }
