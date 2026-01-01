@@ -13,6 +13,7 @@ import Contact from './pages/Contact';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import ForgotPassword from './pages/ForgotPassword';
+import Verify from './pages/Verify';
 import Dashboard from './pages/Dashboard';
 import Requests from './pages/Requests';
 import Marketplace from './pages/Marketplace';
@@ -58,6 +59,7 @@ function App() {
               {/* Auth */}
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
+              <Route path="/verify" element={<Verify />} />
               <Route path="/forgot" element={<ForgotPassword />} />
 
               {/* App */}

@@ -81,6 +81,41 @@ app.post('/api/ai/chat', (req, res) => {
   }
 });
 
+// Auth endpoints parity for local development
+app.post('/api/auth/register', (req, res) => {
+  const { email } = req.body || {};
+  if (!email || typeof email !== 'string') {
+    return res.status(400).json({ ok: false, error: 'Missing email' });
+  }
+  return res.json({ ok: true, needsVerification: true });
+});
+
+app.post('/api/auth/verify', (req, res) => {
+  const { email, code } = req.body || {};
+  if (!email || !code) {
+    return res.status(400).json({ ok: false, error: 'Missing parameters' });
+  }
+  if (code === '123456' || /^[0-9]{6}$/.test(code)) {
+    return res.json({ ok: true });
+  }
+  return res.status(400).json({ ok: false, error: 'Invalid code' });
+});
+
+app.post('/api/auth/google', (req, res) => {
+  const { credential } = req.body || {};
+  if (!credential || typeof credential !== 'string') {
+    return res.status(400).json({ ok: false, error: 'Missing credential' });
+  }
+  let email = null;
+  try {
+    const payload = JSON.parse(Buffer.from(credential.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString('utf8'));
+    email = payload?.email || null;
+  } catch (e) {
+    // ignore
+  }
+  return res.json({ ok: true, verified: !!email, email });
+});
+
 // Catch-all 404 handler - return JSON instead of HTML
 app.use((req, res) => {
   res.status(404).json({
