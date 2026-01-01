@@ -239,15 +239,42 @@ export function generateAssistantResponse(message, locale, previousState, reques
     }
   }
 
+  // Step 5b: Capture services offered for PROVIDER_SIGNUP
+  if (currentState.intent === 'PROVIDER_SIGNUP' && currentState.step === 'ASK_SERVICES_OFFERED' && message.trim().length > 0) {
+    // Extract services from message (split by common separators)
+    const services = message
+      .split(/[,;\/\n]+/)
+      .map(s => s.trim())
+      .filter(s => s.length > 2 && s.length < 50); // Basic validation
+
+    if (services.length > 0) {
+      newInfo.servicesOffered = services;
+    }
+  }
+
+  // Step 5c: Capture area for PROVIDER_SIGNUP
+  if (currentState.intent === 'PROVIDER_SIGNUP' && currentState.step === 'ASK_AREA' && message.trim().length > 0) {
+    newInfo.area = message.trim();
+  }
+
+  // Step 5d: Capture availability for PROVIDER_SIGNUP
+  if (currentState.intent === 'PROVIDER_SIGNUP' && currentState.step === 'ASK_AVAILABILITY' && message.trim().length > 0) {
+    newInfo.availability = message.trim();
+  }
+
   // Step 6: Advance conversation state
   const nextState = advanceConversationState(currentState, newInfo);
 
   // Step 7: Generate reply based on next step using reply locale
   const reply = generateReplyForStep(nextState, replyLocale, nlpResult, requestId);
 
+  // Step 8: Generate context-aware suggestions
+  const suggestedActions = generateSuggestions(nextState, replyLocale);
+
   return {
     reply,
     nextState,
+    suggestedActions,
   };
 }
 
@@ -379,6 +406,77 @@ function generateReplyForStep(state, locale, nlpResult, requestId = '') {
     es: '¿Cómo puedo ayudarte hoy?',
     fa: 'امروز چطور می‌توانم به شما کمک کنم؟',
   }[locale];
+}
+
+/**
+ * Generate context-aware suggestions based on conversation state
+ * @param {ConversationState} state
+ * @param {Locale} locale
+ * @returns {Array<{id: string, label: string, value: string}>}
+ */
+function generateSuggestions(state, locale) {
+  const suggestions = [];
+
+  // DETECT_INTENT: Suggest booking or signup
+  if (state.step === 'DETECT_INTENT' && (!state.intent || state.intent === 'UNKNOWN')) {
+    const labels = {
+      en: { book: 'Book a service', signup: 'Become a helper' },
+      sv: { book: 'Boka tjänst', signup: 'Bli hjälpare' },
+      de: { book: 'Service buchen', signup: 'Helfer werden' },
+      es: { book: 'Reservar servicio', signup: 'Ser ayudante' },
+      fa: { book: 'رزرو خدمت', signup: 'همکار شدن' },
+    };
+    const l = labels[locale] || labels.en;
+    return [
+      { id: 'book', label: l.book, value: 'I want to book a service' },
+      { id: 'signup', label: l.signup, value: 'I want to become a helper' },
+    ];
+  }
+
+  // RESOLVE_SERVICE: Suggest popular services
+  if (state.step === 'RESOLVE_SERVICE') {
+    const serviceLabels = {
+      en: { cleaning: 'Cleaning', moving: 'Moving', handyman: 'Handyman' },
+      sv: { cleaning: 'Städning', moving: 'Flytt', handyman: 'Hantverkare' },
+      de: { cleaning: 'Reinigung', moving: 'Umzug', handyman: 'Handwerker' },
+      es: { cleaning: 'Limpieza', moving: 'Mudanza', handyman: 'Manitas' },
+      fa: { cleaning: 'نظافت', moving: 'اسباب‌کشی', handyman: 'تعمیرکار' },
+    };
+    const l = serviceLabels[locale] || serviceLabels.en;
+    return [
+      { id: 'cleaning', label: l.cleaning, value: l.cleaning },
+      { id: 'moving', label: l.moving, value: l.moving },
+      { id: 'handyman', label: l.handyman, value: l.handyman },
+    ];
+  }
+
+  // ASK_LOCATION: Suggest major cities
+  if (state.step === 'ASK_LOCATION') {
+    return [
+      { id: 'stockholm', label: 'Stockholm', value: 'Stockholm' },
+      { id: 'goteborg', label: 'Göteborg', value: 'Göteborg' },
+      { id: 'malmo', label: 'Malmö', value: 'Malmö' },
+    ];
+  }
+
+  // ASK_TIME: Suggest time options
+  if (state.step === 'ASK_TIME') {
+    const timeLabels = {
+      en: { today: 'Today', tomorrow: 'Tomorrow', weekend: 'This weekend' },
+      sv: { today: 'Idag', tomorrow: 'Imorgon', weekend: 'I helgen' },
+      de: { today: 'Heute', tomorrow: 'Morgen', weekend: 'Am Wochenende' },
+      es: { today: 'Hoy', tomorrow: 'Mañana', weekend: 'Este fin de semana' },
+      fa: { today: 'امروز', tomorrow: 'فردا', weekend: 'آخر هفته' },
+    };
+    const l = timeLabels[locale] || timeLabels.en;
+    return [
+      { id: 'today', label: l.today, value: l.today },
+      { id: 'tomorrow', label: l.tomorrow, value: l.tomorrow },
+      { id: 'weekend', label: l.weekend, value: l.weekend },
+    ];
+  }
+
+  return suggestions;
 }
 
 /**

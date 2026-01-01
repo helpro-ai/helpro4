@@ -54,6 +54,9 @@ export function initConversationState(intent) {
  *   timing?: string;
  *   scope?: any;
  *   budget?: string;
+ *   servicesOffered?: string[];
+ *   area?: string;
+ *   availability?: string;
  * }} newInfo
  * @returns {ConversationState}
  */
@@ -69,6 +72,9 @@ export function advanceConversationState(currentState, newInfo) {
   if (newInfo.timing) nextState.timing = newInfo.timing;
   if (newInfo.scope) nextState.scope = { ...nextState.scope, ...newInfo.scope };
   if (newInfo.budget) nextState.budget = newInfo.budget;
+  if (newInfo.servicesOffered) nextState.servicesOffered = newInfo.servicesOffered;
+  if (newInfo.area) nextState.area = newInfo.area;
+  if (newInfo.availability) nextState.availability = newInfo.availability;
 
   // Determine next step based on intent and what we have
   if (nextState.intent === 'BOOK_SERVICE' || nextState.intent === 'POST_TASK') {

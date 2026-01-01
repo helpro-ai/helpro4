@@ -34,12 +34,18 @@ export interface ChatRequest {
   conversationState?: ConversationState | null;
 }
 
+export interface SuggestedAction {
+  id: string;
+  label: string;
+  value: string;
+}
+
 export interface ChatResponse {
   status: 'ok';
   requestId: string;
   reply: string;
   conversationState?: ConversationState;
-  suggestedActions?: string[];
+  suggestedActions?: SuggestedAction[];
 }
 
 export async function sendChatMessage(request: ChatRequest): Promise<ChatResponse> {

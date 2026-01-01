@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { sendChatMessage, ChatMessage, ChatResponse, ConversationState } from '../utils/api';
+import { sendChatMessage, ChatMessage, ChatResponse, ConversationState, SuggestedAction } from '../utils/api';
 import { generateRequestId } from '../utils/requestId';
 import { useLanguage } from '../contexts/LanguageContext';
 import {
@@ -17,6 +17,7 @@ export function useChat() {
   const [conversationState, setConversationState] = useState<ConversationState | null>(() =>
     loadConversationState<ConversationState>()
   );
+  const [suggestions, setSuggestions] = useState<SuggestedAction[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const currentRequestIdRef = useRef<string | null>(null);
@@ -45,6 +46,11 @@ export function useChat() {
     currentRequestIdRef.current = requestId;
 
     try {
+      // Debug logging (dev-only)
+      if (import.meta.env.DEV) {
+        console.debug('[Chat] Request', { locale, message: content.substring(0, 20), state: conversationState?.step });
+      }
+
       const response: ChatResponse = await sendChatMessage({
         message: content.trim(),
         requestId,
@@ -70,6 +76,13 @@ export function useChat() {
         setConversationState(response.conversationState);
       }
 
+      // Update suggestions from response
+      if (response.suggestedActions) {
+        setSuggestions(response.suggestedActions);
+      } else {
+        setSuggestions([]);
+      }
+
       console.info('[Chat] Message sent successfully', { requestId, state: response.conversationState });
     } catch (err: any) {
       setError(err.message || 'Failed to send message');
@@ -83,6 +96,7 @@ export function useChat() {
   const reset = useCallback(() => {
     setMessages([]);
     setConversationState(null);
+    setSuggestions([]);
     setError(null);
     setLoading(false);
     currentRequestIdRef.current = null;
@@ -90,5 +104,5 @@ export function useChat() {
     clearConversationState();
   }, []);
 
-  return { messages, loading, error, sendMessage, reset, conversationState };
+  return { messages, loading, error, sendMessage, reset, conversationState, suggestions };
 }
