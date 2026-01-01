@@ -6,6 +6,7 @@ export interface ChatMessage {
 export interface ConversationState {
   step: string;
   intent?: string;
+  segment?: string; // 'home' | 'office' | 'hotel' for quick actions
   serviceId?: string;
   customServiceId?: string;
   customServiceDraft?: {

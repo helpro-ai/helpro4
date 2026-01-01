@@ -21,6 +21,36 @@ import { advanceConversationState, initConversationState, getMissingFields } fro
 
 // Multilingual templates for questions
 const QUESTIONS = {
+  ASK_CATEGORY: {
+    home: {
+      en: ['What help do you need at home?', 'What kind of home service are you looking for?', 'How can I help with your home?'],
+      sv: ['Vad behöver du hjälp med hemma?', 'Vilken typ av hemtjänst söker du?', 'Hur kan jag hjälpa dig hemma?'],
+      de: ['Welche Hilfe benötigen Sie zu Hause?', 'Welche Art von Heimservice suchen Sie?', 'Wie kann ich Ihnen zu Hause helfen?'],
+      es: ['¿Qué ayuda necesitas en casa?', '¿Qué tipo de servicio doméstico buscas?', '¿Cómo puedo ayudarte en casa?'],
+      fa: ['در خانه به چه کمکی نیاز دارید؟', 'چه نوع خدمت خانگی می‌خواهید؟', 'چطور می‌توانم در خانه کمک کنم؟'],
+    },
+    office: {
+      en: ['What help do you need at your office?', 'What office service are you looking for?', 'How can I help with your office?'],
+      sv: ['Vad behöver du hjälp med på kontoret?', 'Vilken kontorsservice söker du?', 'Hur kan jag hjälpa dig på kontoret?'],
+      de: ['Welche Hilfe benötigen Sie in Ihrem Büro?', 'Welchen Büroservice suchen Sie?', 'Wie kann ich Ihnen in Ihrem Büro helfen?'],
+      es: ['¿Qué ayuda necesitas en tu oficina?', '¿Qué servicio de oficina buscas?', '¿Cómo puedo ayudarte en tu oficina?'],
+      fa: ['در دفتر به چه کمکی نیاز دارید؟', 'چه خدمت اداری می‌خواهید؟', 'چطور می‌توانم در دفتر کمک کنم؟'],
+    },
+    hotel: {
+      en: ['What help do you need for your hotel?', 'What hotel service are you looking for?', 'How can I help with your hotel?'],
+      sv: ['Vad behöver du hjälp med för ditt hotell?', 'Vilken hotellservice söker du?', 'Hur kan jag hjälpa dig med ditt hotell?'],
+      de: ['Welche Hilfe benötigen Sie für Ihr Hotel?', 'Welchen Hotelservice suchen Sie?', 'Wie kann ich Ihnen mit Ihrem Hotel helfen?'],
+      es: ['¿Qué ayuda necesitas para tu hotel?', '¿Qué servicio hotelero buscas?', '¿Cómo puedo ayudarte con tu hotel?'],
+      fa: ['برای هتل به چه کمکی نیاز دارید؟', 'چه خدمت هتلی می‌خواهید؟', 'چطور می‌توانم با هتل کمک کنم؟'],
+    },
+    default: {
+      en: ['What kind of help are you looking for?', 'What service do you need?', 'How can I assist you?'],
+      sv: ['Vilken typ av hjälp söker du?', 'Vilken tjänst behöver du?', 'Hur kan jag hjälpa dig?'],
+      de: ['Welche Art von Hilfe suchen Sie?', 'Welchen Service benötigen Sie?', 'Wie kann ich Ihnen helfen?'],
+      es: ['¿Qué tipo de ayuda buscas?', '¿Qué servicio necesitas?', '¿Cómo puedo ayudarte?'],
+      fa: ['به چه کمکی نیاز دارید؟', 'چه خدمتی می‌خواهید؟', 'چطور می‌توانم کمک کنم؟'],
+    },
+  },
   ASK_LOCATION: {
     en: 'Where do you need this service? (e.g., Stockholm, Göteborg, your address)',
     sv: 'Var behöver du denna tjänst? (t.ex. Stockholm, Göteborg, din adress)',
@@ -122,13 +152,37 @@ function isQuickActionToken(message) {
 }
 
 /**
+ * Select a variation from an array deterministically based on requestId
+ * @param {string[]} variations
+ * @param {string} requestId
+ * @returns {string}
+ */
+function selectVariation(variations, requestId = '') {
+  if (!Array.isArray(variations) || variations.length === 0) {
+    return '';
+  }
+  if (variations.length === 1) {
+    return variations[0];
+  }
+  // Simple hash of requestId to select variation
+  let hash = 0;
+  for (let i = 0; i < requestId.length; i++) {
+    hash = ((hash << 5) - hash) + requestId.charCodeAt(i);
+    hash = hash & hash; // Convert to 32bit integer
+  }
+  const index = Math.abs(hash) % variations.length;
+  return variations[index];
+}
+
+/**
  * Generate context-aware reply based on conversation state
  * @param {string} message
  * @param {Locale} locale - Request locale from client
  * @param {ConversationState | null} previousState
+ * @param {string} [requestId] - Request ID for deterministic variation selection
  * @returns {AssistantResponse}
  */
-export function generateAssistantResponse(message, locale, previousState) {
+export function generateAssistantResponse(message, locale, previousState, requestId = '') {
   // Step 1: Analyze message with NLP
   const nlpResult = analyzeMessage(message, locale);
 
@@ -139,12 +193,12 @@ export function generateAssistantResponse(message, locale, previousState) {
     ? (locale || 'en')
     : (nlpResult.detectedLanguage || locale || 'en');
 
-  // Step 3: Initialize or update conversation state
-  const currentState = previousState || initConversationState(nlpResult.intent);
+  // Step 3: Initialize or preserve conversation state
+  const currentState = previousState || initConversationState(null);
 
-  // Step 4: Extract new information from this message
+  // Step 4: Handle quick actions (Home/Office/Hotel/Today/Weekend)
+  const normalized = message.toLowerCase().trim();
   const newInfo = {
-    intent: nlpResult.intent,
     location: nlpResult.entities.location,
     timing: nlpResult.entities.timing,
     scope: {
@@ -155,8 +209,27 @@ export function generateAssistantResponse(message, locale, previousState) {
     budget: nlpResult.entities.budget,
   };
 
-  // Step 5: Resolve service if needed
-  if ((nlpResult.intent === 'BOOK_SERVICE' || nlpResult.intent === 'POST_TASK') && !currentState.serviceId) {
+  if (normalized === 'home' || normalized === 'office' || normalized === 'hotel') {
+    // Quick action: set intent + segment, skip DETECT_INTENT
+    newInfo.intent = 'BOOK_SERVICE';
+    newInfo.segment = normalized;
+  } else if (normalized === 'today' || normalized === 'weekend' || normalized === 'tomorrow') {
+    // Quick action: set timing
+    newInfo.timing = normalized;
+    // If no intent yet, set to BOOK_SERVICE
+    if (!currentState.intent) {
+      newInfo.intent = 'BOOK_SERVICE';
+    }
+  } else {
+    // Only update intent from NLP if no existing intent in state
+    if (!currentState.intent || currentState.intent === 'UNKNOWN') {
+      newInfo.intent = nlpResult.intent;
+    }
+  }
+
+  // Step 5: Resolve service if needed (but not for quick actions)
+  const isQuickAction = ['home', 'office', 'hotel', 'today', 'weekend', 'tomorrow'].includes(normalized);
+  if (!isQuickAction && (nlpResult.intent === 'BOOK_SERVICE' || nlpResult.intent === 'POST_TASK') && !currentState.serviceId) {
     const serviceMatch = resolveService(message, replyLocale, nlpResult.category);
 
     if (serviceMatch.matchType === 'KNOWN') {
@@ -170,7 +243,7 @@ export function generateAssistantResponse(message, locale, previousState) {
   const nextState = advanceConversationState(currentState, newInfo);
 
   // Step 7: Generate reply based on next step using reply locale
-  const reply = generateReplyForStep(nextState, replyLocale, nlpResult);
+  const reply = generateReplyForStep(nextState, replyLocale, nlpResult, requestId);
 
   return {
     reply,
@@ -183,9 +256,10 @@ export function generateAssistantResponse(message, locale, previousState) {
  * @param {ConversationState} state
  * @param {Locale} locale
  * @param {NLPResult} nlpResult
+ * @param {string} requestId
  * @returns {string}
  */
-function generateReplyForStep(state, locale, nlpResult) {
+function generateReplyForStep(state, locale, nlpResult, requestId = '') {
   const step = state.step;
 
   // DETECT_INTENT step (greetings and unknown intent)
@@ -194,6 +268,14 @@ function generateReplyForStep(state, locale, nlpResult) {
     const isGreeting = nlpResult.intent === 'UNKNOWN';
 
     if (isGreeting) {
+      // Context-aware greeting response
+      if (state.segment) {
+        // User already selected segment, ask for category
+        const segmentKey = state.segment;
+        const variations = QUESTIONS.ASK_CATEGORY[segmentKey] || QUESTIONS.ASK_CATEGORY.default;
+        return selectVariation(variations[locale], requestId);
+      }
+      // No context yet, use generic greeting
       return QUESTIONS.GREETING[locale];
     }
 
@@ -207,30 +289,14 @@ function generateReplyForStep(state, locale, nlpResult) {
     }[locale];
   }
 
-  // RESOLVE_SERVICE step
+  // RESOLVE_SERVICE step (ask for category)
   if (step === 'RESOLVE_SERVICE') {
-    if (state.serviceId) {
-      const serviceName = getServiceName(state.serviceId, locale);
-      const confirmation = CONFIRMATIONS.SERVICE_RESOLVED[locale](serviceName);
-      const nextQuestion = QUESTIONS.ASK_LOCATION[locale];
-      return `${confirmation} ${nextQuestion}`;
-    }
-
-    if (state.customServiceDraft?.name) {
-      const confirmation = CONFIRMATIONS.CUSTOM_SERVICE[locale](state.customServiceDraft.name);
-      const nextQuestion = QUESTIONS.ASK_LOCATION[locale];
-      return `${confirmation} ${nextQuestion}`;
-    }
-
-    // Fallback: ask what service they need
-    return {
-      en: 'What type of help do you need? (e.g., cleaning, moving, handyman)',
-      sv: 'Vilken typ av hjälp behöver du? (t.ex. städning, flytt, hantverkare)',
-      de: 'Welche Art von Hilfe benötigen Sie? (z.B. Reinigung, Umzug, Handwerker)',
-      es: '¿Qué tipo de ayuda necesitas? (ej. limpieza, mudanza, manitas)',
-      fa: 'به چه نوع کمکی نیاز دارید؟ (مثلاً نظافت، اسباب‌کشی، تعمیرکار)',
-    }[locale];
+    // Use segment-specific question with variation
+    const segmentKey = state.segment || 'default';
+    const variations = QUESTIONS.ASK_CATEGORY[segmentKey] || QUESTIONS.ASK_CATEGORY.default;
+    return selectVariation(variations[locale], requestId);
   }
+
 
   // ASK_LOCATION step
   if (step === 'ASK_LOCATION') {

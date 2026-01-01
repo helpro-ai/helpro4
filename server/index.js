@@ -50,7 +50,7 @@ app.post('/api/ai/chat', (req, res) => {
   try {
     // Generate context-aware response with state machine (same as production)
     const previousState = conversationState || null;
-    const assistantResponse = generateAssistantResponse(message, locale || 'en', previousState);
+    const assistantResponse = generateAssistantResponse(message, locale || 'en', previousState, safeRequestId);
 
     setTimeout(() => {
       res.json({

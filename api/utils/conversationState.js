@@ -8,6 +8,7 @@
  * @typedef {{
  *   step: ConversationStep;
  *   intent?: IntentType;
+ *   segment?: string;
  *   serviceId?: string;
  *   customServiceId?: string;
  *   customServiceDraft?: {
@@ -46,6 +47,7 @@ export function initConversationState(intent) {
  * @param {ConversationState} currentState
  * @param {{
  *   intent?: IntentType;
+ *   segment?: string;
  *   serviceId?: string;
  *   customServiceDraft?: any;
  *   location?: string;
@@ -60,6 +62,7 @@ export function advanceConversationState(currentState, newInfo) {
 
   // Merge new information
   if (newInfo.intent) nextState.intent = newInfo.intent;
+  if (newInfo.segment) nextState.segment = newInfo.segment;
   if (newInfo.serviceId) nextState.serviceId = newInfo.serviceId;
   if (newInfo.customServiceDraft) nextState.customServiceDraft = { ...nextState.customServiceDraft, ...newInfo.customServiceDraft };
   if (newInfo.location) nextState.location = newInfo.location;
