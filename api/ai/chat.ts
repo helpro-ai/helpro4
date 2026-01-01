@@ -3,6 +3,11 @@ import { generateAssistantResponse, sanitizeText as sanitize } from '../utils/as
 import { applySecurityHeaders } from '../utils/securityHeaders.js';
 import type { ConversationState } from '../utils/conversationState.js';
 
+// Vercel runtime configuration
+export const config = {
+  runtime: 'nodejs20.x',
+};
+
 function respond(res: VercelResponse, status: number, payload: Record<string, unknown>) {
   applySecurityHeaders(res, { methods: 'POST,OPTIONS', headers: 'Content-Type,X-Request-ID' });
   res.status(status).json(payload);
