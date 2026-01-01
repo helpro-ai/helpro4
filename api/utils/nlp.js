@@ -69,9 +69,9 @@ const intentKeywords = {
     GENERAL_QA: ['how', 'what', 'why', 'when', 'pricing', 'price', 'cost', 'do you have', 'does it'],
   },
   sv: {
-    BOOK_SERVICE: ['behöver', 'vill', 'vill ha', 'söker', 'hjälp med', 'boka', 'städning', 'städa', 'flytt', 'flyttning', 'kan ni', 'montering', 'montera'],
-    PROVIDER_SIGNUP: ['bli hjälpare', 'registrera som', 'erbjuda tjänster'],
-    GENERAL_QA: ['hur', 'vad', 'varför', 'när', 'pris'],
+    BOOK_SERVICE: ['behöver', 'vill', 'vill ha', 'skulle vilja', 'söker', 'hjälp med', 'boka', 'städning', 'städa', 'flytt', 'flyttning', 'kan ni', 'skulle ni kunna', 'montering', 'montera', 'looking for', 'need help'],
+    PROVIDER_SIGNUP: ['bli hjälpare', 'registrera som', 'erbjuda tjänster', 'jobba som'],
+    GENERAL_QA: ['hur fungerar', 'hur mycket', 'vad kostar', 'varför', 'när', 'pris', 'kostar'],
   },
   de: {
     BOOK_SERVICE: ['brauche', 'will', 'suche', 'hilfe mit', 'buchen', 'reinigung'],
@@ -84,9 +84,9 @@ const intentKeywords = {
     GENERAL_QA: ['cómo', 'qué', 'por qué', 'cuándo', 'precio'],
   },
   fa: {
-    BOOK_SERVICE: ['نیاز', 'می خواهم', 'میخواهم', 'رزرو', 'نظافت', 'خدمت', 'اسباب کشی', 'اسباب‌کشی', 'حمل'],
-    PROVIDER_SIGNUP: ['همکار شدن', 'ثبت نام کنم', 'ثبت‌نام', 'ثبت نام', 'نام نویسی', 'ارائه خدمات', 'کار کردن'],
-    GENERAL_QA: ['چگونه', 'چطور', 'چه طور', 'چی', 'چیه', 'چه', 'چرا', 'کی', 'کجا', 'چند', 'قیمت', 'پرداخت', 'واریز', 'تسویه', 'پول', 'هزینه', 'کارمزد', 'لغو', 'کنسل', 'بازگشت پول', 'ریفاند', 'بیمه', 'امنیت', 'تایید', 'اعتبار', 'زمان', 'چقدر', 'دریافت پول'],
+    BOOK_SERVICE: ['نیاز', 'می خواهم', 'میخواهم', 'میخوام', 'رزرو', 'نظافت', 'خدمت', 'اسباب کشی', 'اسباب‌کشی', 'حمل', 'بیا', 'بیایید'],
+    PROVIDER_SIGNUP: ['همکار شدن', 'ثبت نام کنم', 'ثبت‌نام کنم', 'ثبت نام', 'نام نویسی', 'ارائه خدمات', 'کار کردن', 'کار می کنم'],
+    GENERAL_QA: ['چگونه', 'چطور', 'چطوری', 'چه طور', 'چی هست', 'چیه', 'چرا', 'قیمت چقدر', 'چقدر است', 'چقدره', 'پرداخت چطور', 'واریز', 'تسویه', 'کارمزد', 'لغو', 'کنسل', 'بازگشت وجه', 'ریفاند', 'بیمه دارید', 'بیمه دارد', 'امنیت', 'اعتبار'],
   },
 };
 
@@ -129,14 +129,23 @@ function classifyIntent(text, locale) {
     return 'PROVIDER_SIGNUP';
   }
 
-  // Check GENERAL_QA second
+  // Check GENERAL_QA second (must come before category check to avoid single-word ambiguity)
   if (keywords.GENERAL_QA && keywords.GENERAL_QA.some(word => normalized.includes(normalizeText(word)))) {
     return 'GENERAL_QA';
   }
 
-  // Check BOOK_SERVICE last (most common, but should be after specific intents)
+  // Check BOOK_SERVICE (intent keywords)
   if (keywords.BOOK_SERVICE && keywords.BOOK_SERVICE.some(word => normalized.includes(normalizeText(word)))) {
     return 'BOOK_SERVICE';
+  }
+
+  // NEW: Check if message is a single-word service category (e.g. "cleaning", "نظافت", "städning")
+  // This handles cases where user just types the service name without context
+  const categoryHints = categoryKeywords[locale] || categoryKeywords.en;
+  for (const categoryWords of Object.values(categoryHints)) {
+    if (categoryWords.some(word => normalizeText(word) === normalized)) {
+      return 'BOOK_SERVICE'; // Single-word service name = implicit booking intent
+    }
   }
 
   // Fallback: Check English keywords for any locale (handles English suggestion values)
@@ -250,7 +259,10 @@ function extractEntities(text) {
   const entities = {};
 
   // Convert Persian/Arabic digits to Western digits for consistent matching
-  const normalizedDigits = text.replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d));
+  const normalizedDigits = text.replace(/[۰-۹]/g, d => {
+    const index = '۰۱۲۳۴۵۶۷۸۹'.indexOf(d);
+    return index >= 0 ? String(index) : d;
+  });
 
   // Hours: support Western and Persian digits
   const hourMatch = normalizedDigits.match(/([0-9۰-۹]+)\s*(hour|hr|hours|hrs|timme|timmar|stunde|hora|ساعت)/i);
@@ -280,8 +292,9 @@ function extractEntities(text) {
 
   // Timing: support Swedish time phrases (idag, imorgon, helgen, kväll, morgon) + Persian
   // Note: \b doesn't work well with Persian, so use lookahead/lookbehind or simple match
-  const timingMatch = text.match(/(today|tomorrow|tonight|this\s+week|weekend|idag|imorgon|i\s*morgon|helgen|i\s*helgen|kväll|kvällen|morgon|morgonen|heute|morgen|hoy|mañana|امروز|فردا|عصر|صبح|شب|هفته)/i);
-  if (timingMatch) entities.timing = timingMatch[1];
+  // Improved: handle Swedish colloquial spacing variations
+  const timingMatch = text.match(/(today|tomorrow|tonight|this\s+week|weekend|idag|i\s*dag|imorgon|i\s*morgon|i\s+morgon|helgen|i\s*helgen|i\s+helgen|kväll|kvällen|ikväll|i\s*kväll|morgon|morgonen|imorgon\s*bitti|heute|morgen|hoy|mañana|امروز|فردا|عصر|صبح|شب|هفته)/i);
+  if (timingMatch) entities.timing = timingMatch[1].replace(/\s+/g, ' ').trim();
 
   // Budget: support SEK, EUR, USD, Toman
   const budgetMatch = text.match(/([0-9۰-۹]+)\s*(kr|sek|€|eur|\$|usd|تومان|کرون)/i);

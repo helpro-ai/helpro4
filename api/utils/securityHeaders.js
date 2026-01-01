@@ -10,7 +10,11 @@ export function applySecurityHeaders(res, options = {}) {
   const isProd = process.env.NODE_ENV === 'production';
   const allowedOrigins = (process.env.ALLOWED_ORIGINS || '').split(',').filter(Boolean);
 
-  // Content Security Policy
+  // Content Security Policy (only for API responses, not HTML pages)
+  // NOTE: CSP should NOT be applied to static HTML/assets - only to API endpoints
+  // This is intentionally commented out to prevent blocking inline scripts in index.html
+  // If you need CSP on API responses, uncomment and ensure it only applies to /api/* routes
+  /*
   const cspDirectives = [
     "default-src 'self'",
     "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://accounts.google.com https://apis.google.com",
@@ -23,8 +27,8 @@ export function applySecurityHeaders(res, options = {}) {
     "base-uri 'self'",
     "form-action 'self'",
   ];
-
   res.setHeader('Content-Security-Policy', cspDirectives.join('; '));
+  */
 
   // Security headers
   res.setHeader('X-Content-Type-Options', 'nosniff');
