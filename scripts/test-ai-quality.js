@@ -271,7 +271,7 @@ const colors = {
   cyan: '\x1b[36m',
 };
 
-function runTests() {
+async function runTests() {
   console.log(`${colors.cyan}=== AI Quality Test Suite ===${colors.reset}\n`);
   console.log(`Running ${TEST_CASES.length} test cases...\n`);
 
@@ -281,7 +281,7 @@ function runTests() {
 
   for (const testCase of TEST_CASES) {
     const nlpResult = analyzeMessage(testCase.message, testCase.locale);
-    const assistantResponse = generateAssistantResponse(testCase.message, testCase.locale, null, 'test-req-id');
+    const assistantResponse = await generateAssistantResponse(testCase.message, testCase.locale, null, 'test-req-id');
 
     let testPassed = true;
     const errors = [];

@@ -10,7 +10,8 @@ export interface AssistantResponse {
 export function generateAssistantResponse(
   message: string,
   locale: Locale,
-  previousState: ConversationState | null
-): AssistantResponse;
+  previousState: ConversationState | null,
+  requestId?: string
+): Promise<AssistantResponse>;
 
 export function sanitizeText(text: string): string;
