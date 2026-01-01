@@ -84,11 +84,33 @@ const intentKeywords = {
     GENERAL_QA: ['cómo', 'qué', 'por qué', 'cuándo', 'precio'],
   },
   fa: {
-    BOOK_SERVICE: ['نیاز', 'می‌خواهم', 'کمک', 'رزرو', 'نظافت'],
-    PROVIDER_SIGNUP: ['همکار شدن', 'ثبت‌نام', 'ارائه خدمات'],
+    BOOK_SERVICE: ['نیاز', 'می خواهم', 'کمک', 'رزرو', 'نظافت', 'خدمت'],
+    PROVIDER_SIGNUP: ['همکار شدن', 'ثبت نام', 'نام نویسی', 'ارائه خدمات'],
     GENERAL_QA: ['چگونه', 'چه', 'چرا', 'کی', 'قیمت'],
   },
 };
+
+/**
+ * Normalize text for Persian/Arabic matching
+ * @param {string} text
+ * @returns {string}
+ */
+function normalizeText(text) {
+  // NFKC normalization
+  let normalized = text.normalize('NFKC');
+
+  // Replace ZWNJ (Zero-Width Non-Joiner) with space
+  normalized = normalized.replace(/\u200c/g, ' ');
+
+  // Map Arabic characters to Persian equivalents
+  normalized = normalized.replace(/ك/g, 'ک'); // Arabic kaf -> Persian kaf
+  normalized = normalized.replace(/ي/g, 'ی'); // Arabic yeh -> Persian yeh
+
+  // Collapse multiple spaces
+  normalized = normalized.replace(/\s+/g, ' ').trim();
+
+  return normalized.toLowerCase();
+}
 
 /**
  * @param {string} text
@@ -96,12 +118,23 @@ const intentKeywords = {
  * @returns {IntentType}
  */
 function classifyIntent(text, locale) {
-  const normalized = text.toLowerCase();
+  const normalized = normalizeText(text);
   const keywords = intentKeywords[locale] || intentKeywords.en;
 
+  // Check locale-specific keywords
   for (const [intent, words] of Object.entries(keywords)) {
-    if (words.some(word => normalized.includes(word.toLowerCase()))) {
+    if (words.some(word => normalized.includes(normalizeText(word)))) {
       return /** @type {IntentType} */ (intent);
+    }
+  }
+
+  // Fallback: Check English keywords for any locale (handles English suggestion values)
+  if (locale !== 'en') {
+    const enKeywords = intentKeywords.en;
+    for (const [intent, words] of Object.entries(enKeywords)) {
+      if (words.some(word => normalized.includes(word.toLowerCase()))) {
+        return /** @type {IntentType} */ (intent);
+      }
     }
   }
 

@@ -419,17 +419,32 @@ function generateSuggestions(state, locale) {
 
   // DETECT_INTENT: Suggest booking or signup
   if (state.step === 'DETECT_INTENT' && (!state.intent || state.intent === 'UNKNOWN')) {
-    const labels = {
-      en: { book: 'Book a service', signup: 'Become a helper' },
-      sv: { book: 'Boka tjänst', signup: 'Bli hjälpare' },
-      de: { book: 'Service buchen', signup: 'Helfer werden' },
-      es: { book: 'Reservar servicio', signup: 'Ser ayudante' },
-      fa: { book: 'رزرو خدمت', signup: 'همکار شدن' },
+    const suggestions = {
+      en: {
+        book: { label: 'Book a service', value: 'I want to book a service' },
+        signup: { label: 'Become a helper', value: 'sign up as helper' },
+      },
+      sv: {
+        book: { label: 'Boka tjänst', value: 'boka' },
+        signup: { label: 'Bli hjälpare', value: 'bli hjälpare' },
+      },
+      de: {
+        book: { label: 'Service buchen', value: 'buchen' },
+        signup: { label: 'Helfer werden', value: 'helfer werden' },
+      },
+      es: {
+        book: { label: 'Reservar servicio', value: 'reservar' },
+        signup: { label: 'Ser ayudante', value: 'convertirme en ayudante' },
+      },
+      fa: {
+        book: { label: 'رزرو خدمت', value: 'رزرو خدمت' },
+        signup: { label: 'همکار شدن', value: 'ثبت نام' },
+      },
     };
-    const l = labels[locale] || labels.en;
+    const s = suggestions[locale] || suggestions.en;
     return [
-      { id: 'book', label: l.book, value: 'I want to book a service' },
-      { id: 'signup', label: l.signup, value: 'I want to become a helper' },
+      { id: 'book', label: s.book.label, value: s.book.value },
+      { id: 'signup', label: s.signup.label, value: s.signup.value },
     ];
   }
 

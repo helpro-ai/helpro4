@@ -8,6 +8,17 @@ const PORT = 8080;
 app.use(cors());
 app.use(express.json());
 
+// JSON parse error handler (must come after express.json())
+app.use((err, req, res, next) => {
+  if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
+    return res.status(400).json({
+      status: 'error',
+      error: 'Invalid JSON body',
+    });
+  }
+  next();
+});
+
 const rateLimit = new Map();
 
 // Health check endpoint (matches api/health.ts)
