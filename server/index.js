@@ -1,5 +1,6 @@
 import express from 'express';
 import cors from 'cors';
+import { generateAssistantResponse, sanitizeText } from '../api/utils/assistantEngine.js';
 
 const app = express();
 const PORT = 8080;
@@ -7,15 +8,43 @@ const PORT = 8080;
 app.use(cors());
 app.use(express.json());
 
+// JSON parse error handler (must come after express.json())
+app.use((err, req, res, next) => {
+  if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
+    return res.status(400).json({
+      status: 'error',
+      error: 'Invalid JSON body',
+    });
+  }
+  next();
+});
+
 const rateLimit = new Map();
 
-// AI Chat endpoint
+// Health check endpoint (matches api/health.ts)
+app.get('/api/health', (req, res) => {
+  res.json({
+    ok: true,
+    message: 'healthy',
+    timestamp: new Date().toISOString(),
+  });
+});
+
+app.options('/api/health', (req, res) => {
+  res.status(204).end();
+});
+
+// AI Chat endpoint (matches api/ai/chat.ts)
 app.post('/api/ai/chat', (req, res) => {
-  const { message, requestId, locale } = req.body;
+  const { message, requestId, locale, conversationState } = req.body;
 
   // Validation
   if (!message || typeof message !== 'string') {
     return res.status(400).json({ status: 'error', error: 'Invalid request payload' });
+  }
+
+  if (message.length > 2000) {
+    return res.status(400).json({ status: 'error', error: 'Message too long (max 2000 characters)' });
   }
 
   const now = Date.now();
@@ -27,34 +56,72 @@ app.post('/api/ai/chat', (req, res) => {
     rateLimit.set(requestId, now);
   }
 
-  // Mock response based on last user message
-  const userText = message.toLowerCase();
-  const safeRequestId = requestId || Date.now().toString();
+  const safeRequestId = requestId || `req-${Date.now()}`;
 
-  let reply = 'Hello! How can I help you today?';
+  try {
+    // Generate context-aware response with state machine (same as production)
+    const previousState = conversationState || null;
+    const assistantResponse = generateAssistantResponse(message, locale || 'en', previousState, safeRequestId);
 
-  if (userText.includes('quote') || userText.includes('price')) {
-    reply = 'I can help you get a quote! What type of help do you need? (moving, delivery, recycling, shopping, or home tasks)';
-  } else if (userText.includes('book') || userText.includes('help')) {
-    reply = 'Great! To book help, I need a few details. What would you like help with?';
-  } else if (userText.includes('status') || userText.includes('booking')) {
-    reply = 'Let me check your bookings for you...';
-  } else if (userText.includes('moving') || userText.includes('furniture')) {
-    reply = 'Moving help! I can connect you with helpers who have vehicles. Typical cost is €30-80 depending on size and distance. Ready to post a request?';
-  } else if (userText.includes('delivery')) {
-    reply = 'Delivery service! Perfect for picking up second-hand items or delivering packages. Typical cost is €15-50. Want to create a delivery request?';
-  } else if (userText.includes('recycle') || userText.includes('waste')) {
-    reply = 'Recycling help! We can connect you with someone to take items to the recycling center. Eco-friendly and convenient. Cost usually €20-40.';
-  }
-
-  setTimeout(() => {
-    res.json({
-      status: 'ok',
-      reply,
-      requestId: safeRequestId,
-      locale: locale || 'en',
+    setTimeout(() => {
+      res.json({
+        status: 'ok',
+        requestId: safeRequestId,
+        reply: sanitizeText(assistantResponse.reply),
+        conversationState: assistantResponse.nextState, // Return updated state
+        suggestedActions: assistantResponse.suggestedActions,
+      });
+    }, 800); // Simulate network delay
+  } catch (error) {
+    console.error('[Express] Error processing message:', error);
+    return res.status(500).json({
+      status: 'error',
+      error: 'Internal server error',
     });
-  }, 800); // Simulate network delay
+  }
+});
+
+// Auth endpoints parity for local development
+app.post('/api/auth/register', (req, res) => {
+  const { email } = req.body || {};
+  if (!email || typeof email !== 'string') {
+    return res.status(400).json({ ok: false, error: 'Missing email' });
+  }
+  return res.json({ ok: true, needsVerification: true });
+});
+
+app.post('/api/auth/verify', (req, res) => {
+  const { email, code } = req.body || {};
+  if (!email || !code) {
+    return res.status(400).json({ ok: false, error: 'Missing parameters' });
+  }
+  if (code === '123456' || /^[0-9]{6}$/.test(code)) {
+    return res.json({ ok: true });
+  }
+  return res.status(400).json({ ok: false, error: 'Invalid code' });
+});
+
+app.post('/api/auth/google', (req, res) => {
+  const { credential } = req.body || {};
+  if (!credential || typeof credential !== 'string') {
+    return res.status(400).json({ ok: false, error: 'Missing credential' });
+  }
+  let email = null;
+  try {
+    const payload = JSON.parse(Buffer.from(credential.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString('utf8'));
+    email = payload?.email || null;
+  } catch (e) {
+    // ignore
+  }
+  return res.json({ ok: true, verified: !!email, email });
+});
+
+// Catch-all 404 handler - return JSON instead of HTML
+app.use((req, res) => {
+  res.status(404).json({
+    status: 'error',
+    error: 'Not found',
+  });
 });
 
 app.listen(PORT, () => {

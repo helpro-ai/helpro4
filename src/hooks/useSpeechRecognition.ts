@@ -1,8 +1,10 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { isSpeechRecognitionSupported } from '../utils/speech';
-import { getSpeechLang, getLocale } from '../i18n';
+import { getSpeechLang } from '../i18n';
+import { useLanguage } from '../contexts/LanguageContext';
 
 export function useSpeechRecognition() {
+  const { locale } = useLanguage();
   const [isListening, setIsListening] = useState(false);
   const [transcript, setTranscript] = useState('');
   const [partial, setPartial] = useState('');
@@ -24,7 +26,7 @@ export function useSpeechRecognition() {
     const recognition: any = new SR();
     recognition.continuous = true;
     recognition.interimResults = true;
-    recognition.lang = getSpeechLang(getLocale());
+    recognition.lang = getSpeechLang(locale);
 
     recognition.onresult = (event: any) => {
       let interimTranscript = '';
@@ -60,10 +62,16 @@ export function useSpeechRecognition() {
     recognitionRef.current = recognition;
 
     return () => {
-      recognition.stop();
+      if (recognition) {
+        try {
+          recognition.abort();
+        } catch (e) {
+          // Ignore errors on cleanup
+        }
+      }
       recognitionRef.current = null;
     };
-  }, []);
+  }, [locale]);
 
   const start = useCallback((lang?: string) => {
     if (!recognitionRef.current) return;

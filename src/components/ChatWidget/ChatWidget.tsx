@@ -9,6 +9,9 @@ import { Chip } from '../ui/Chip';
 import { parseUserIntent, draftFromIntent } from '../../utils/nlp';
 import { BookingDraft } from '../../types/chat';
 import { Drawer } from '../ui/Drawer';
+import { useLanguage } from '../../contexts/LanguageContext';
+import { getSpeechLang } from '../../i18n';
+import { saveIntakeState, clearIntakeState } from '../../utils/storage';
 
 const quickReplies = ['Home', 'Office', 'Hotel', 'Today', 'Weekend'];
 const SPEAK_KEY = 'helpro_speak_replies';
@@ -35,6 +38,7 @@ function DraftPanel({ draft }: { draft: BookingDraft }) {
 
 export function ChatWidget() {
   const { messages, loading, error, sendMessage, reset } = useChat();
+  const { locale } = useLanguage();
   const [input, setInput] = useState('');
   const [speakReplies, setSpeakReplies] = useState(() => localStorage.getItem(SPEAK_KEY) === 'true');
   const [draftOpen, setDraftOpen] = useState(false);
@@ -60,20 +64,33 @@ export function ChatWidget() {
     if (!synthesisSupported || !speakReplies) return;
     const last = messages[messages.length - 1];
     if (last?.role === 'assistant') {
-      speak(last.content, 'en-US');
+      speak(last.content, getSpeechLang(locale));
     }
-  }, [messages, speakReplies, synthesisSupported, speak]);
+  }, [messages, speakReplies, synthesisSupported, speak, locale]);
 
   const lastUserMessage = useMemo(() => [...messages].reverse().find(m => m.role === 'user'), [messages]);
   const intentSource = input || lastUserMessage?.content || '';
   const intent = useMemo(() => parseUserIntent(intentSource), [intentSource]);
   const draft: BookingDraft = useMemo(() => draftFromIntent(intent, intentSource), [intent, intentSource]);
 
+  // Persist draft state when it changes (for PR#2)
+  useEffect(() => {
+    if (draft.category || draft.timeHint || draft.rooms || draft.hours) {
+      // Basic intake state: just the draft for now (TODO: expand for PR#4 with intent/step)
+      saveIntakeState({ draft });
+    }
+  }, [draft]);
+
   const submitMessage = (content: string) => {
     if (!content.trim()) return;
     sendMessage(content.trim());
     setInput('');
     cancel();
+  };
+
+  const handleReset = () => {
+    reset();
+    clearIntakeState();
   };
 
   const handleSubmit = (e: FormEvent) => {
@@ -97,7 +114,7 @@ export function ChatWidget() {
           <h3>Plan your clean</h3>
         </div>
         <div className="chat__actions">
-          <IconButton aria-label="Reset chat" onClick={reset}>↺</IconButton>
+          <IconButton aria-label="Reset chat" onClick={handleReset}>↺</IconButton>
           {synthesisSupported && (
             <IconButton aria-label="Toggle speech" onClick={toggleSpeakReplies} title="Speak replies">
               {speakReplies ? '🔊' : '🔈'}

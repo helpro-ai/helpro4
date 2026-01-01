@@ -1,13 +1,38 @@
-import { useState, useCallback } from 'react';
-import { sendChatMessage, ChatMessage, ChatResponse } from '../utils/api';
+import { useState, useCallback, useEffect, useRef } from 'react';
+import { sendChatMessage, ChatMessage, ChatResponse, ConversationState, SuggestedAction } from '../utils/api';
 import { generateRequestId } from '../utils/requestId';
-import { getLocale } from '../i18n';
+import { useLanguage } from '../contexts/LanguageContext';
+import {
+  loadChatHistory,
+  saveChatHistory,
+  clearChatHistory,
+  loadConversationState,
+  saveConversationState,
+  clearConversationState,
+} from '../utils/storage';
 
 export function useChat() {
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const { locale } = useLanguage();
+  const [messages, setMessages] = useState<ChatMessage[]>(() => loadChatHistory<ChatMessage>());
+  const [conversationState, setConversationState] = useState<ConversationState | null>(() =>
+    loadConversationState<ConversationState>()
+  );
+  const [suggestions, setSuggestions] = useState<SuggestedAction[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [currentRequestId, setCurrentRequestId] = useState<string | null>(null);
+  const currentRequestIdRef = useRef<string | null>(null);
+
+  // Persist messages to localStorage whenever they change
+  useEffect(() => {
+    saveChatHistory(messages);
+  }, [messages]);
+
+  // Persist conversation state whenever it changes
+  useEffect(() => {
+    if (conversationState) {
+      saveConversationState(conversationState);
+    }
+  }, [conversationState]);
 
   const sendMessage = useCallback(async (content: string) => {
     if (!content.trim()) return;
@@ -18,18 +43,24 @@ export function useChat() {
     setError(null);
 
     const requestId = generateRequestId();
-    setCurrentRequestId(requestId);
+    currentRequestIdRef.current = requestId;
 
     try {
+      // Debug logging (dev-only)
+      if (import.meta.env.DEV) {
+        console.debug('[Chat] Request', { locale, message: content.substring(0, 20), state: conversationState?.step });
+      }
+
       const response: ChatResponse = await sendChatMessage({
         message: content.trim(),
         requestId,
-        locale: getLocale(),
+        locale,
+        conversationState,
       });
 
       // Guard against stale responses
-      if (currentRequestId && requestId !== currentRequestId) {
-        console.info('[Chat] Ignoring stale response', { requestId, currentRequestId });
+      if (currentRequestIdRef.current !== requestId) {
+        console.info('[Chat] Ignoring stale response', { requestId, current: currentRequestIdRef.current });
         return;
       }
 
@@ -39,22 +70,39 @@ export function useChat() {
       };
 
       setMessages(prev => [...prev, assistantMessage]);
-      console.info('[Chat] Message sent successfully', { requestId });
+
+      // Update conversation state from response
+      if (response.conversationState) {
+        setConversationState(response.conversationState);
+      }
+
+      // Update suggestions from response
+      if (response.suggestedActions) {
+        setSuggestions(response.suggestedActions);
+      } else {
+        setSuggestions([]);
+      }
+
+      console.info('[Chat] Message sent successfully', { requestId, state: response.conversationState });
     } catch (err: any) {
       setError(err.message || 'Failed to send message');
       console.error('[Chat] Error sending message', err);
     } finally {
       setLoading(false);
-      setCurrentRequestId(null);
+      currentRequestIdRef.current = null;
     }
-  }, [messages, currentRequestId]);
+  }, [locale, conversationState]);
 
   const reset = useCallback(() => {
     setMessages([]);
+    setConversationState(null);
+    setSuggestions([]);
     setError(null);
     setLoading(false);
-    setCurrentRequestId(null);
+    currentRequestIdRef.current = null;
+    clearChatHistory();
+    clearConversationState();
   }, []);
 
-  return { messages, loading, error, sendMessage, reset };
+  return { messages, loading, error, sendMessage, reset, conversationState, suggestions };
 }
