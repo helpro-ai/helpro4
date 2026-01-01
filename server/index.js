@@ -35,7 +35,7 @@ app.options('/api/health', (req, res) => {
 });
 
 // AI Chat endpoint (matches api/ai/chat.ts)
-app.post('/api/ai/chat', (req, res) => {
+app.post('/api/ai/chat', async (req, res) => {
   const { message, requestId, locale, conversationState } = req.body;
 
   // Validation
@@ -59,9 +59,9 @@ app.post('/api/ai/chat', (req, res) => {
   const safeRequestId = requestId || `req-${Date.now()}`;
 
   try {
-    // Generate context-aware response with state machine (same as production)
+    // Generate context-aware response with state machine (now async for Python NLP)
     const previousState = conversationState || null;
-    const assistantResponse = generateAssistantResponse(message, locale || 'en', previousState, safeRequestId);
+    const assistantResponse = await generateAssistantResponse(message, locale || 'en', previousState, safeRequestId);
 
     setTimeout(() => {
       res.json({

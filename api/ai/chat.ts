@@ -45,10 +45,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     : `req-${Date.now()}`;
 
   try {
-    // Generate context-aware response with state machine
+    // Generate context-aware response with state machine (now async for Python NLP)
     const previousState = conversationState as ConversationState | null;
-    // @ts-ignore - requestId parameter added for variation selection
-    const assistantResponse = generateAssistantResponse(message, locale || 'en', previousState, safeRequestId);
+    const assistantResponse = await generateAssistantResponse(message, locale || 'en', previousState, safeRequestId);
 
     return respond(res, 200, {
       status: 'ok',

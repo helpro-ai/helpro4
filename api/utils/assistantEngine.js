@@ -3,6 +3,7 @@
 // @ts-check
 
 import { analyzeMessage } from './nlp.js';
+import { analyzeMessageWithPython } from './pythonNlpClient.js';
 import { resolveService, suggestGroupForCustomService } from './serviceResolver.js';
 import { getServiceById, getServiceName } from './serviceCatalog.js';
 import { advanceConversationState, initConversationState, getMissingFields } from './conversationState.js';
@@ -263,11 +264,53 @@ function selectVariation(variations, requestId = '') {
  * @param {Locale} locale - Request locale from client
  * @param {ConversationState | null} previousState
  * @param {string} [requestId] - Request ID for deterministic variation selection
- * @returns {AssistantResponse}
+ * @returns {Promise<AssistantResponse>}
  */
-export function generateAssistantResponse(message, locale, previousState, requestId = '') {
-  // Step 1: Analyze message with NLP (for parsing only, NOT for output language)
-  const nlpResult = analyzeMessage(message, locale);
+export async function generateAssistantResponse(message, locale, previousState, requestId = '') {
+  // Step 1: Attempt Python NLP first (if enabled), fallback to JS NLP
+  let nlpResult;
+  const pythonNlpResult = await analyzeMessageWithPython(message, locale, requestId);
+
+  if (pythonNlpResult) {
+    // Python NLP succeeded - merge with confidence-based precedence
+    const jsNlpResult = analyzeMessage(message, locale);
+
+    // Use Python results if confidence is high, otherwise use JS NLP
+    nlpResult = {
+      detectedLanguage: pythonNlpResult.language || jsNlpResult.detectedLanguage,
+      intent: pythonNlpResult.confidence >= 0.7 ? pythonNlpResult.intent : jsNlpResult.intent,
+      category: pythonNlpResult.category || jsNlpResult.category,
+      entities: {
+        ...jsNlpResult.entities,
+        ...pythonNlpResult.entities, // Python entities override JS entities
+      },
+    };
+
+    // Log which NLP was used (for observability)
+    if (process.env.NLP_LOG_LEVEL === 'DEBUG') {
+      console.log(JSON.stringify({
+        timestamp: new Date().toISOString(),
+        level: 'DEBUG',
+        service: 'assistantEngine',
+        message: 'Used Python NLP',
+        requestId,
+        confidence: pythonNlpResult.confidence,
+      }));
+    }
+  } else {
+    // Python NLP unavailable - use JS NLP fallback
+    nlpResult = analyzeMessage(message, locale);
+
+    if (process.env.NLP_LOG_LEVEL === 'DEBUG' || process.env.NLP_LOG_LEVEL === 'INFO') {
+      console.log(JSON.stringify({
+        timestamp: new Date().toISOString(),
+        level: 'INFO',
+        service: 'assistantEngine',
+        message: 'Used JS NLP fallback',
+        requestId,
+      }));
+    }
+  }
 
   // Step 2: Initialize or preserve conversation state
   const currentState = previousState || initConversationState(null);
