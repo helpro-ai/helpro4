@@ -61,9 +61,17 @@
   border-radius: var(--radius);
   background: var(--glass);
   border: 1px solid var(--border);
-  max-width: 80%;
+  max-width: min(80%, 600px);
   line-height: 1.5;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+  word-wrap: break-word;
+}
+
+@media (max-width: 768px) {
+  .chat__bubble {
+    max-width: 85%;
+    padding: var(--space-3) var(--space-3);
+  }
 }
 
 .chat__message--assistant .chat__bubble {
@@ -88,6 +96,22 @@
   gap: var(--space-2);
 }
 
+@media (max-width: 768px) {
+  .chat__composer {
+    position: sticky;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: var(--bg);
+    padding: var(--space-3);
+    padding-bottom: calc(var(--space-3) + var(--safe-area-bottom));
+    margin: 0 calc(-1 * var(--container-padding));
+    border-top: 1px solid var(--border);
+    z-index: var(--z-composer);
+    backdrop-filter: blur(var(--blur));
+  }
+}
+
 .chat__input {
   display: flex;
   gap: 0.5rem;
@@ -97,10 +121,12 @@
 .chat__input input {
   flex: 1;
   padding: 12px 14px;
+  min-height: var(--min-touch-target);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   background: var(--glass);
   color: var(--text);
+  font-size: var(--text-base);
 }
 
 .chat__input-actions {
@@ -112,6 +138,13 @@
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+}
+
+.chat__quick .chip {
+  min-height: var(--min-touch-target);
+  display: inline-flex;
+  align-items: center;
+  padding: var(--space-2) var(--space-3);
 }
 
 .chat__footer-note {

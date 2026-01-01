@@ -16,9 +16,10 @@ html, body {
 body {
   min-height: 100vh;
   font-family: var(--font-sans);
+  font-size: var(--text-base);
   background: radial-gradient(circle at 20% 20%, rgba(106, 167, 255, 0.16), transparent 28%), radial-gradient(circle at 80% 0%, rgba(77, 208, 225, 0.14), transparent 25%), radial-gradient(circle at 50% 50%, rgba(167, 139, 250, 0.12), transparent 35%), var(--bg);
   color: var(--text);
-  line-height: 1.6;
+  line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   position: relative;
   overflow-x: hidden;
@@ -72,4 +73,33 @@ button, input, textarea {
 ::selection {
   background: rgba(106, 167, 255, 0.25);
   color: var(--text);
+}
+
+/* Container utility for consistent page width/padding */
+.container {
+  width: 100%;
+  max-width: 1200px;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: var(--container-padding);
+  padding-right: var(--container-padding);
+}
+
+/* RTL support for Persian */
+[dir="rtl"] {
+  direction: rtl;
+}
+
+[dir="rtl"] .layout__nav {
+  flex-direction: row-reverse;
+}
+
+[dir="rtl"] .chat__bubble--user {
+  margin-left: 0;
+  margin-right: auto;
+}
+
+[dir="rtl"] .chat__bubble--bot {
+  margin-right: 0;
+  margin-left: auto;
 }
