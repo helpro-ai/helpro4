@@ -396,6 +396,36 @@ export function generateAssistantResponse(message, locale, previousState, reques
     // If no KB match, fall through to normal flow (will ask clarifying question)
   }
 
+  // Step 5g: KB fail-safe for question-like messages with UNKNOWN intent
+  // Only trigger when: (1) intent is UNKNOWN, (2) no existing booking/signup in progress, (3) message looks like a question
+  if (
+    (nlpResult.intent === 'UNKNOWN' || !currentState.intent || currentState.intent === 'UNKNOWN') &&
+    currentState.step === 'DETECT_INTENT' &&
+    !isQuickAction
+  ) {
+    // Check if message looks like a question
+    const looksLikeQuestion =
+      /[?؟]/.test(message) || // Contains question mark (Latin or Persian)
+      /^(چطور|چگونه|چرا|کی|کجا|چند|چه|چی|how|why|when|where|what|which|can|is|do|does|are)/i.test(message.trim());
+
+    if (looksLikeQuestion) {
+      const kbMatch = searchKB(message, uiLocale);
+
+      if (kbMatch && kbMatch.score >= 5) {
+        // High-confidence KB match for question
+        const nextState = { ...currentState, step: 'COMPLETE', intent: 'GENERAL_QA', uiLocale };
+        const relatedSuggestions = generateKBSuggestions(kbMatch.entry.category, uiLocale);
+
+        return {
+          reply: kbMatch.entry.answer[uiLocale] || kbMatch.entry.answer.en,
+          nextState,
+          suggestedActions: relatedSuggestions,
+        };
+      }
+    }
+    // If no high-confidence match, fall through to normal greeting/unknown flow
+  }
+
   // Step 6: Advance conversation state
   const nextState = advanceConversationState(currentState, newInfo);
 

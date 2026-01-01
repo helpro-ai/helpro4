@@ -22,7 +22,7 @@ export const KNOWLEDGE_BASE = [
       sv: ['betalning', 'betala', 'betalt', 'när får hjälpare betalt', 'pengar'],
       de: ['zahlung', 'bezahlt', 'bezahlen', 'helfer bezahlung', 'geld'],
       es: ['pago', 'pagado', 'pagar', 'dinero', 'cuándo se paga'],
-      fa: ['پرداخت', 'پول', 'حق‌الزحمه', 'چگونه پرداخت', 'کی پرداخت'],
+      fa: ['پرداخت', 'پول', 'حق الزحمه', 'چگونه پرداخت', 'چطور پرداخت', 'کی پرداخت', 'واریز', 'تسویه', 'دریافت پول', 'کارمزد', 'زمان پرداخت', 'چطور پول', 'کی پول'],
     },
     answer: {
       en: 'Helpers are paid after you mark the job complete. Payments are processed securely through the app.',
