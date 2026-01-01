@@ -6,6 +6,7 @@ import { analyzeMessage } from './nlp.js';
 import { resolveService, suggestGroupForCustomService } from './serviceResolver.js';
 import { getServiceById, getServiceName } from './serviceCatalog.js';
 import { advanceConversationState, initConversationState, getMissingFields } from './conversationState.js';
+import { searchKB } from './knowledgeBase.js';
 
 /**
  * @typedef {'en' | 'sv' | 'de' | 'es' | 'fa'} Locale
@@ -375,6 +376,26 @@ export function generateAssistantResponse(message, locale, previousState, reques
     };
   }
 
+  // Step 5f: Handle GENERAL_QA / ACCOUNT_HELP with Knowledge Base lookup
+  if ((nlpResult.intent === 'GENERAL_QA' || nlpResult.intent === 'ACCOUNT_HELP') && !isQuickAction) {
+    const kbMatch = searchKB(message, uiLocale);
+
+    if (kbMatch) {
+      // Found answer in KB
+      const nextState = { ...currentState, step: 'COMPLETE', intent: nlpResult.intent, uiLocale };
+
+      // Generate related suggestions based on KB category
+      const relatedSuggestions = generateKBSuggestions(kbMatch.entry.category, uiLocale);
+
+      return {
+        reply: kbMatch.entry.answer[uiLocale] || kbMatch.entry.answer.en,
+        nextState,
+        suggestedActions: relatedSuggestions,
+      };
+    }
+    // If no KB match, fall through to normal flow (will ask clarifying question)
+  }
+
   // Step 6: Advance conversation state
   const nextState = advanceConversationState(currentState, newInfo);
 
@@ -672,6 +693,104 @@ function generateSuggestions(state, locale) {
   }
 
   return suggestions;
+}
+
+/**
+ * Generate KB-related suggestions based on category
+ * @param {string} category
+ * @param {Locale} locale
+ * @returns {Array<{id: string, label: string, value: string}>}
+ */
+function generateKBSuggestions(category, locale) {
+  const suggestions = {
+    PRICING: {
+      en: [
+        { id: 'book', label: 'Book a service', value: 'I want to book a service' },
+        { id: 'price-change', label: 'Can I change price?', value: 'Can I change the price after posting?' },
+      ],
+      sv: [
+        { id: 'book', label: 'Boka tjänst', value: 'boka' },
+        { id: 'price-change', label: 'Kan jag ändra pris?', value: 'Kan jag ändra priset efter att ha lagt upp?' },
+      ],
+      fa: [
+        { id: 'book', label: 'رزرو خدمت', value: 'رزرو خدمت' },
+        { id: 'price-change', label: 'تغییر قیمت؟', value: 'می‌توانم قیمت را بعد از ثبت تغییر دهم؟' },
+      ],
+    },
+    PAYMENTS: {
+      en: [
+        { id: 'book', label: 'Book a service', value: 'I want to book a service' },
+        { id: 'pricing', label: 'How much does it cost?', value: 'How much does it cost?' },
+      ],
+      sv: [
+        { id: 'book', label: 'Boka tjänst', value: 'boka' },
+        { id: 'pricing', label: 'Hur mycket kostar det?', value: 'Hur mycket kostar det?' },
+      ],
+      fa: [
+        { id: 'book', label: 'رزرو خدمت', value: 'رزرو خدمت' },
+        { id: 'pricing', label: 'چقدر هزینه دارد؟', value: 'چقدر هزینه دارد؟' },
+      ],
+    },
+    SAFETY: {
+      en: [
+        { id: 'book', label: 'Book a service', value: 'I want to book a service' },
+        { id: 'how-works', label: 'How does it work?', value: 'How does it work?' },
+      ],
+      sv: [
+        { id: 'book', label: 'Boka tjänst', value: 'boka' },
+        { id: 'how-works', label: 'Hur fungerar det?', value: 'Hur fungerar det?' },
+      ],
+      fa: [
+        { id: 'book', label: 'رزرو خدمت', value: 'رزرو خدمت' },
+        { id: 'how-works', label: 'چگونه کار می‌کند؟', value: 'چگونه کار می‌کند؟' },
+      ],
+    },
+    HOW_IT_WORKS: {
+      en: [
+        { id: 'book', label: 'Book a service', value: 'I want to book a service' },
+        { id: 'become-helper', label: 'Become a helper', value: 'I want to become a helper' },
+      ],
+      sv: [
+        { id: 'book', label: 'Boka tjänst', value: 'boka' },
+        { id: 'become-helper', label: 'Bli hjälpare', value: 'Jag vill bli hjälpare' },
+      ],
+      fa: [
+        { id: 'book', label: 'رزرو خدمت', value: 'رزرو خدمت' },
+        { id: 'become-helper', label: 'همکار شدن', value: 'می‌خواهم همکار شوم' },
+      ],
+    },
+    SERVICES: {
+      en: [
+        { id: 'book', label: 'Book this service', value: 'I want to book this service' },
+        { id: 'more-services', label: 'Other services', value: 'What other services do you offer?' },
+      ],
+      sv: [
+        { id: 'book', label: 'Boka denna tjänst', value: 'Jag vill boka denna tjänst' },
+        { id: 'more-services', label: 'Andra tjänster', value: 'Vilka andra tjänster erbjuder ni?' },
+      ],
+      fa: [
+        { id: 'book', label: 'رزرو این خدمت', value: 'می‌خواهم این خدمت را رزرو کنم' },
+        { id: 'more-services', label: 'خدمات دیگر', value: 'چه خدمات دیگری ارائه می‌دهید؟' },
+      ],
+    },
+    PLATFORM: {
+      en: [
+        { id: 'book', label: 'Book a service', value: 'I want to book a service' },
+        { id: 'become-helper', label: 'Become a helper', value: 'I want to become a helper' },
+      ],
+      sv: [
+        { id: 'book', label: 'Boka tjänst', value: 'boka' },
+        { id: 'become-helper', label: 'Bli hjälpare', value: 'Jag vill bli hjälpare' },
+      ],
+      fa: [
+        { id: 'book', label: 'رزرو خدمت', value: 'رزرو خدمت' },
+        { id: 'become-helper', label: 'همکار شدن', value: 'می‌خواهم همکار شوم' },
+      ],
+    },
+  };
+
+  const categorySuggestions = suggestions[category] || suggestions.PLATFORM;
+  return categorySuggestions[locale] || categorySuggestions.en;
 }
 
 /**
